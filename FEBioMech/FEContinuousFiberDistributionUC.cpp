@@ -73,8 +73,7 @@ mat3ds FEContinuousFiberDistributionUC::DevStress(FEMaterialPoint& mp)
 	mat3ds s; s.zero();
 
 	// get the local coordinate systems
-	mat3d Q = GetLocalCS(mp);
-	mat3d QT = Q.transpose();
+	mat3d QT = GetLocalCS(mp).transpose();
 
 	double IFD = 0.0;
 
@@ -104,6 +103,9 @@ mat3ds FEContinuousFiberDistributionUC::DevStress(FEMaterialPoint& mp)
 	// don't forget to delete the iterator
 	delete it;
 
+	// prevent division by zero
+	if (IFD == 0.0) IFD = 1.0;
+
 	return s / IFD;
 }
 
@@ -114,8 +116,7 @@ tens4ds FEContinuousFiberDistributionUC::DevTangent(FEMaterialPoint& mp)
 	FEElasticMaterialPoint& pt = *mp.ExtractData<FEElasticMaterialPoint>();
 
 	// get the local coordinate systems
-	mat3d Q = GetLocalCS(mp);
-	mat3d QT = Q.transpose();
+	mat3d QT = GetLocalCS(mp).transpose();
 
 	// initialize stress tensor
 	tens4ds c;
@@ -143,9 +144,12 @@ tens4ds FEContinuousFiberDistributionUC::DevTangent(FEMaterialPoint& mp)
 		}
 		while (it->Next());
 	}
-
+	
 	// don't forget to delete the iterator
 	delete it;
+
+	// prevent division by zero
+    if (IFD == 0.0) IFD = 1.0;
 
 	// we multiply by two to add contribution from other half-sphere
 	return c / IFD;
@@ -158,8 +162,7 @@ double FEContinuousFiberDistributionUC::DevStrainEnergyDensity(FEMaterialPoint& 
 	FEElasticMaterialPoint& pt = *mp.ExtractData<FEElasticMaterialPoint>();
 
 	// get the local coordinate systems
-	mat3d Q = GetLocalCS(mp);
-	mat3d QT = Q.transpose();
+	mat3d QT = GetLocalCS(mp).transpose();
 
 	double IFD = 0.0;
 	double sed = 0.0;
@@ -186,6 +189,9 @@ double FEContinuousFiberDistributionUC::DevStrainEnergyDensity(FEMaterialPoint& 
 
 	// don't forget to delete the iterator
 	delete it;
+
+	// prevent division by zero
+	if (IFD == 0.0) IFD = 1.0;
 
 	// we multiply by two to add contribution from other half-sphere
 	return sed / IFD;

@@ -35,5 +35,5 @@ public:
 	FEBoxMesh(FEModel* fem);
 	virtual ~FEBoxMesh();
 
-	void Create(int nx, int ny, int nz, vec3d r0, vec3d r1, int nhex = FE_HEX8G8);
+	void Create(int nx, int ny, int nz, vec3d r0, vec3d r1, FE_Element_Type nhex = FE_HEX8G8);
 };

@@ -495,7 +495,7 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>fecore.lib;febioxml.lib;febioplot.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>fecore.lib;febioplot.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -659,8 +659,9 @@
     <ClInclude Include="..\..\FEBioMech\FEPreStrainElastic.h" />
     <ClInclude Include="..\..\FEBioMech\FEPreStrainUncoupledElastic.h" />
     <ClInclude Include="..\..\FEBioMech\FEPRLig.h" />
+    <ClInclude Include="..\..\FEBioMech\FEReactivePlasticDamage.h" />
+    <ClInclude Include="..\..\FEBioMech\FEReactivePlasticDamageMaterialPoint.h" />
     <ClInclude Include="..\..\FEBioMech\FEReactivePlasticity.h" />
-    <ClInclude Include="..\..\FEBioMech\FEReactivePlasticityHardening.h" />
     <ClInclude Include="..\..\FEBioMech\FEReactivePlasticityMaterialPoint.h" />
     <ClInclude Include="..\..\FEBioMech\FEReactiveVEMaterialPoint.h" />
     <ClInclude Include="..\..\FEBioMech\FEReactiveViscoelastic.h" />
@@ -693,8 +694,8 @@
     <ClInclude Include="..\..\FEBioMech\FERVEDamageMaterial.h" />
     <ClInclude Include="..\..\FEBioMech\FERVEModel.h" />
     <ClInclude Include="..\..\FEBioMech\FERVEModel2O.h" />
+    <ClInclude Include="..\..\FEBioMech\FESlidingElasticInterface.h" />
     <ClInclude Include="..\..\FEBioMech\FESlidingInterface.h" />
-    <ClInclude Include="..\..\FEBioMech\FESlidingInterfaceBW.h" />
     <ClInclude Include="..\..\FEBioMech\FESolidDomainFactory.h" />
     <ClInclude Include="..\..\FEBioMech\FESolidLinearSystem.h" />
     <ClInclude Include="..\..\FEBioMech\FESolidMaterial.h" />
@@ -898,8 +899,9 @@
     <ClCompile Include="..\..\FEBioMech\FEPreStrainElastic.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEPreStrainUncoupledElastic.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEPRLig.cpp" />
+    <ClCompile Include="..\..\FEBioMech\FEReactivePlasticDamage.cpp" />
+    <ClCompile Include="..\..\FEBioMech\FEReactivePlasticDamageMaterialPoint.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEReactivePlasticity.cpp" />
-    <ClCompile Include="..\..\FEBioMech\FEReactivePlasticityHardening.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEReactivePlasticityMaterialPoint.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEReactiveVEMaterialPoint.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEReactiveViscoelastic.cpp" />
@@ -932,8 +934,8 @@
     <ClCompile Include="..\..\FEBioMech\FERVEDamageMaterial.cpp" />
     <ClCompile Include="..\..\FEBioMech\FERVEModel.cpp" />
     <ClCompile Include="..\..\FEBioMech\FERVEModel2O.cpp" />
+    <ClCompile Include="..\..\FEBioMech\FESlidingElasticInterface.cpp" />
     <ClCompile Include="..\..\FEBioMech\FESlidingInterface.cpp" />
-    <ClCompile Include="..\..\FEBioMech\FESlidingInterfaceBW.cpp" />
     <ClCompile Include="..\..\FEBioMech\FESolidDomainFactory.cpp" />
     <ClCompile Include="..\..\FEBioMech\FESolidLinearSystem.cpp" />
     <ClCompile Include="..\..\FEBioMech\FESolidMaterial.cpp" />

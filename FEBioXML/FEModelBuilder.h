@@ -30,6 +30,7 @@ SOFTWARE.*/
 #include <FECore/FEModel.h>
 #include <FEBioMech/RigidBC.h>
 #include "febioxml_api.h"
+#include "FEBModel.h"
 #include <string>
 
 class FESolver;
@@ -69,6 +70,7 @@ public:
 		FEParam*	pp;
 		FECoreBase*	pc;
 		const char*	szname;
+		int			index;
 	};
 
 	struct FEBIOXML_API MapLCToFunction
@@ -162,7 +164,7 @@ public:
 	void GlobalToLocalID(int* l, int n, vector<int>& m);
 
 public:
-	void AddMappedParameter(FEParam* p, FECoreBase* parent, const char* szmap);
+	void AddMappedParameter(FEParam* p, FECoreBase* parent, const char* szmap, int index = 0);
 
 	// This will associate all mapped parameters to their assigned maps.
 	void ApplyParameterMaps();
@@ -172,10 +174,14 @@ public:
 	// finish the build process
 	void Finish();
 
+	FEBModel& GetFEBModel();
+
 private:
 	FEModel&		m_fem;				//!< model that is being constructed
 	FEAnalysis*		m_pStep;			//!< pointer to current analysis step
 	int				m_nsteps;			//!< nr of step sections read
+
+	FEBModel	m_feb;
 
 public:
 	int		m_maxid;		//!< max element ID

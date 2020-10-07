@@ -3,7 +3,7 @@ listed below.
 
 See Copyright-FEBio.txt for details.
 
-Copyright (c) 2020 University of Utah, The Trustees of Columbia University in 
+Copyright (c) 2020 University of Utah, The Trustees of Columbia University in
 the City of New York, and others.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,31 +23,21 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
-
-
-
 #pragma once
-#include <FEBioMix/FEMultiphasicStandard.h>
+#include "FECoreBase.h"
+#include <vector>
+#include "matrix.h"
 
-class FEBIOMIX_API FEFCDMaterialPoint : public FESolutesMaterialPoint
-{
-public:
-    FEFCDMaterialPoint(FEMaterialPoint* ppt);
-    
-    void Init(bool bflag);
-    
-public:
-    double    m_cFr;
-};
+class SparseMatrix;
 
-class FEMultiphasicFCD : public FEMultiphasicStandard
+class FECORE_API EigenSolver : public FECoreBase
 {
+	FECORE_SUPER_CLASS
+
 public:
-    FEMultiphasicFCD(FEModel* pfem) : FEMultiphasicStandard(pfem){}
-    
-    FEMaterialPoint* CreateMaterialPointData() override;
-    
-    //! fixed charge density
-    double FixedChargeDensity(FEMaterialPoint& pt) override;
-    
+	EigenSolver(FEModel* fem);
+
+	virtual bool Init();
+
+	virtual bool EigenSolve(SparseMatrix* A, SparseMatrix* B, std::vector<double>& eigenValues, matrix& eigenVectors) = 0;
 };

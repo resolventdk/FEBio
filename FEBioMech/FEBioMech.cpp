@@ -117,7 +117,7 @@ SOFTWARE.*/
 #include "FECoupledMooneyRivlin.h"
 #include "FECoupledVerondaWestmann.h"
 #include "FEReactivePlasticity.h"
-#include "FEReactivePlasticityHardening.h"
+#include "FEReactivePlasticDamage.h"
 #include "FEReactiveViscoelastic.h"
 #include "FEUncoupledReactiveViscoelastic.h"
 #include "FEBondRelaxation.h"
@@ -157,7 +157,7 @@ SOFTWARE.*/
 #include "FERigidWallInterface.h"
 #include "FERigidSlidingContact.h"
 #include "FESlidingInterface.h"
-#include "FESlidingInterfaceBW.h"
+#include "FESlidingElasticInterface.h"
 #include "FEPeriodicSurfaceConstraint.h"
 #include "FETiedInterface.h"
 #include "FETiedElasticInterface.h"
@@ -324,7 +324,7 @@ REGISTER_FECORE_CLASS(FEDamageMaterial                 , "elastic damage"       
 REGISTER_FECORE_CLASS(FERVEDamageMaterial              , "reactive viscoelastic damage"        );
 REGISTER_FECORE_CLASS(FEFatigueMaterial                , "reactive fatigue"                    );
 REGISTER_FECORE_CLASS(FEReactivePlasticity             , "reactive plasticity"                 );
-REGISTER_FECORE_CLASS(FEReactivePlasticityHardening    , "reactive plasticity hardening"       );
+REGISTER_FECORE_CLASS(FEReactivePlasticDamage          , "reactive plastic damage"             );
 
 // Uncoupled elastic materials (derived from FEUncoupledMaterial)
 REGISTER_FECORE_CLASS(FEArrudaBoyce                          , "Arruda-Boyce"                           );
@@ -447,6 +447,7 @@ REGISTER_FECORE_CLASS(FEDamageCriterionVMS , "DC von Mises stress"          );
 REGISTER_FECORE_CLASS(FEDamageCriterionMSS , "DC max shear stress"          );
 REGISTER_FECORE_CLASS(FEDamageCriterionMNS , "DC max normal stress"         );
 REGISTER_FECORE_CLASS(FEDamageCriterionMNLS, "DC max normal Lagrange strain");
+REGISTER_FECORE_CLASS(FEDamageCriterionOSS , "DC octahedral shear strain"   );
 
 // prestrain materials
 REGISTER_FECORE_CLASS(FEPrestrainElastic         , "prestrain elastic");
@@ -543,7 +544,7 @@ REGISTER_FECORE_CLASS(FENodeToNodeConstraint, "node-on-node"  );
 
 REGISTER_FECORE_CLASS(FESlidingInterface         , "sliding-node-on-facet"      );
 REGISTER_FECORE_CLASS(FEFacet2FacetSliding       , "sliding-facet-on-facet"     );
-REGISTER_FECORE_CLASS(FESlidingInterfaceBW       , "sliding-elastic"            );
+REGISTER_FECORE_CLASS(FESlidingElasticInterface  , "sliding-elastic"            );
 REGISTER_FECORE_CLASS(FETiedInterface            , "tied-node-on-facet"         );
 REGISTER_FECORE_CLASS(FEFacet2FacetTied          , "tied-facet-on-facet"        );
 REGISTER_FECORE_CLASS(FETiedElasticInterface     , "tied-elastic"               );

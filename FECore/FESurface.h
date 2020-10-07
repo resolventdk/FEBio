@@ -90,7 +90,7 @@ public:
 	void InitSurface();
     
 	//! creates surface
-	void Create(int nsize, int elemType = -1) override;
+	void Create(int nsize, int elemType = -1);
 
 	//! Build a surface from a facet set
 	void Create(const FEFacetSet& set);
@@ -262,6 +262,7 @@ public:
 public:
 	// Evaluate field variables
 	double Evaluate(FESurfaceMaterialPoint& mp, int dof);
+    double Evaluate(int nface, int dof);
 
 public:
 	//! Evaluate a load vector. 

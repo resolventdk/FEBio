@@ -19,15 +19,14 @@ public:
     bool Execute(FEModel& fem, int nwhen)
     {
 
-        if (nwhen == CB_MINOR_ITERS)
-        {
+        if (nwhen == CB_MINOR_ITERS && fem.GetCurrentStep()->m_timeController) {
 
             double dt = fem.GetCurrentStep()->m_dt;
             double dtmin = fem.GetCurrentStep()->m_timeController->m_dtmin;
 
             if (dt < dtmin) {
-                feLogError("dt<dtmin (%f,%f)\n", dt, dtmin); 
-                throw std::runtime_error(std::string("dt<dtmin"));
+                feLogError("dt<dtmin (%f<%f)\n", dt, dtmin); 
+                throw std::runtime_error("dt<dtmin");
                 return false;
             }
 

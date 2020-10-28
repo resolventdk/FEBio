@@ -460,7 +460,8 @@ bool FEAnalysis::Solve()
 			feLog("\n\n------- failed to converge at time : %lg\n\n", fem.GetCurrentTime());
 
 			// If we have auto time stepping, decrease time step and let's retry
-			if (m_timeController && (m_timeController->m_nretries < m_timeController->m_maxretries))
+			if (m_timeController && (m_timeController->m_nretries < m_timeController->m_maxretries) 
+				&& (m_timeController->m_dtmin < fem.GetCurrentStep()->m_dt))
 			{
 				// restore the previous state
 				dmp.Open(false, true);
@@ -477,7 +478,8 @@ bool FEAnalysis::Solve()
 				// can't retry, so abort
 				if (m_timeController && (m_timeController->m_nretries >= m_timeController->m_maxretries))
 					feLog("Max. nr of retries reached.\n\n");
-
+				if (m_timeController && m_timeController->m_dtmin >= fem.GetCurrentStep()->m_dt)
+					feLog("Time step cannot be reduced further.\n\n");
 				break;
 			}
 		}

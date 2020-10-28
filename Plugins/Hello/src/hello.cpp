@@ -1,8 +1,8 @@
 #include <FECore/sdk.h>
 
 #include <stdio.h>
-#include <FECore/callback.h>
-#include <FECore/FECallback.h>
+#include <FECore/Callback.h>
+#include <FECore/FECallBack.h>
 
 class MyCallback : public FECallBack
 {

@@ -1,9 +1,9 @@
 #include <stdio.h>
 
 #include <FECore/sdk.h>
-#include <FECore/callback.h>
+#include <FECore/Callback.h>
 #include <FECore/FEModel.h>
-#include <FECore/FECallback.h>
+#include <FECore/FECallBack.h>
 #include <FECore/FESurface.h>
 #include <FECore/FENode.h>
 #include <FECore/FEElement.h>

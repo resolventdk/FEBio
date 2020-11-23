@@ -26,10 +26,11 @@ public:
 			// Model is solved
 
 			// create the plot variable "contact pressure"
-			FEPlotData* ps = fecore_new<FEPlotData>("contact pressure", &fem);
+			FEPlotData* ps = fecore_new<FEPlotData>("contact traction", &fem);
 			assert(ps->RegionType() == FE_REGION_SURFACE);
 			assert(ps->StorageFormat() == FMT_ITEM);
 			int datasize = ps->VarSize(ps->DataType());
+			assert(datasize == 3); // ensure 3d vector field
 
 			// get "surfaces"
 			FEMesh& m = fem.GetMesh();
@@ -130,12 +131,19 @@ public:
 					fprintf(pFile, "\n");
 				}
 
+				//// write cell data
+				//fprintf(pFile, "CELL_DATA %d\n", ne);
+				//fprintf(pFile, "SCALARS contact_pressure float 1\n");
+				//fprintf(pFile, "LOOKUP_TABLE default\n");
+				//for (int k = 0; k < nsize; ++k) {
+				//	fprintf(pFile, "%f\n", out[k]);
+				//}
+
 				// write cell data
-				fprintf(pFile, "CELL_DATA %d\n", nsize);
-				fprintf(pFile, "SCALARS contact_pressure float 1\n");
-				fprintf(pFile, "LOOKUP_TABLE default\n");
-				for (int k = 0; k < nsize; ++k) {
-					fprintf(pFile, "%f\n", out[k]);
+				fprintf(pFile, "CELL_DATA %d\n", ne);
+				fprintf(pFile, "VECTORS contact_traction float\n");
+				for (int k = 0; k < ne; ++k) {
+					fprintf(pFile, "%f %f %f\n", out[3*k], out[3*k+1], out[3*k+2]);
 				}
 				
 				// done writing

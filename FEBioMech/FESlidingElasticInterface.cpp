@@ -95,8 +95,8 @@ void FESlidingElasticSurface::Data::Serialize(DumpStream& ar)
 //-----------------------------------------------------------------------------
 
 FESlidingElasticSurface::FESlidingElasticSurface(FEModel* pfem) : FEContactSurface(pfem)
-{
-    
+{   
+
 }
 
 //-----------------------------------------------------------------------------
@@ -105,15 +105,22 @@ bool FESlidingElasticSurface::Init()
     // initialize surface data first
     if (FEContactSurface::Init() == false) return false;
 
+    // init element net nodal force
+    m_fe.resize(Elements());
+    for (int i = 0; i < Elements(); ++i)
+        m_fe[i] = vec3d(0.0, 0.0, 0.0);
+
 	return true;
 }
 
 //-----------------------------------------------------------------------------
 void FESlidingElasticSurface::InitSlidingSurface()
 {
+
     for (int i=0; i<Elements(); ++i)
     {
         FESurfaceElement& el = Element(i);
+
         int nint = el.GaussPoints();
         for (int j=0; j<nint; ++j)
         {
@@ -123,6 +130,8 @@ void FESlidingElasticSurface::InitSlidingSurface()
 			data.m_pmep = data.m_pme;
         }
     }
+
+
 }
 
 //-----------------------------------------------------------------------------
@@ -200,15 +209,9 @@ void FESlidingElasticSurface::GetVectorGap(int nface, vec3d& pg)
 //-----------------------------------------------------------------------------
 void FESlidingElasticSurface::GetContactTraction(int nface, vec3d& pt)
 {
+    //printf("GetContactTraction from m_fe %d/%d (%s)\n",nface,Elements(),GetName().c_str());
     FESurfaceElement& el = Element(nface);
-    int ni = el.GaussPoints();
-    pt = vec3d(0,0,0);
-	for (int k = 0; k < ni; ++k)
-	{
-		Data& data = static_cast<Data&>(*el.GetMaterialPoint(k));
-		pt += data.m_tr;
-	}
-    pt /= ni;
+    pt = m_fe[nface] / FaceArea(el);
 }
 
 //-----------------------------------------------------------------------------
@@ -228,6 +231,7 @@ void FESlidingElasticSurface::GetNodalVectorGap(int nface, vec3d* pg)
 //-----------------------------------------------------------------------------
 void FESlidingElasticSurface::GetNodalContactPressure(int nface, double* pg)
 {
+
     FESurfaceElement& el = Element(nface);
     int ni = el.GaussPoints();
     double ti[FEElement::MAX_INTPOINTS];
@@ -242,6 +246,7 @@ void FESlidingElasticSurface::GetNodalContactPressure(int nface, double* pg)
 //-----------------------------------------------------------------------------
 void FESlidingElasticSurface::GetNodalContactTraction(int nface, vec3d* pt)
 {
+
     FESurfaceElement& el = Element(nface);
     int ni = el.GaussPoints();
     vec3d ti[FEElement::MAX_INTPOINTS];
@@ -931,6 +936,12 @@ void FESlidingElasticInterface::LoadVector(FEGlobalVector& R, const FETimeInfo& 
     m_ss.m_Ft = vec3d(0,0,0);
     m_ms.m_Ft = vec3d(0,0,0);
     
+    // zero element net nodal force
+    for (int i = 0; i < m_ss.Elements(); ++i)
+        m_ss.m_fe[i] = vec3d(0.0, 0.0, 0.0);    
+    for (int i = 0; i < m_ms.Elements(); ++i)
+        m_ms.m_fe[i] = vec3d(0.0, 0.0, 0.0);
+
     // loop over the nr of passes
     int npass = (m_btwo_pass?2:1);
     for (int np=0; np<npass; ++np)
@@ -943,11 +954,13 @@ void FESlidingElasticInterface::LoadVector(FEGlobalVector& R, const FETimeInfo& 
         //#pragma omp parallel for private(sLM, mLM, LM, en, fe, detJ, w, Hm, N)
         for (int i=0; i<ss.Elements(); ++i)
         {
+
             // get the surface element
             FESurfaceElement& se = ss.Element(i);
             
             // get the nr of nodes and integration points
             int nseln = se.Nodes();
+            
             int nint = se.GaussPoints();
             
             // copy the LM vector; we'll need it later
@@ -1047,6 +1060,21 @@ void FESlidingElasticInterface::LoadVector(FEGlobalVector& R, const FETimeInfo& 
                         
                         for (int k=0; k<ndof; ++k) fe[k] += N[k]*detJ[j]*w[j];
                         
+                        // hjs: sum element nodal forces (for plotting only)
+                        for (int k = 0; k < nseln; ++k)
+                        {
+                            ss.m_fe[i].x += fe[3 * k    ];
+                            ss.m_fe[i].y += fe[3 * k + 1];
+                            ss.m_fe[i].z += fe[3 * k + 2];
+                        }
+                        int mi = me.GetLocalID();
+                        for (int k = 0; k < nmeln; ++k)
+                        {
+                            ms.m_fe[mi].x += fe[3 * (k + nseln)    ];
+							ms.m_fe[mi].y += fe[3 * (k + nseln) + 1];
+							ms.m_fe[mi].z += fe[3 * (k + nseln) + 2];
+                        }
+
                         // calculate contact forces
                         for (int k=0; k<nseln; ++k)
                         {
@@ -1065,6 +1093,7 @@ void FESlidingElasticInterface::LoadVector(FEGlobalVector& R, const FETimeInfo& 
             }
         }
     }
+
 }
 
 //-----------------------------------------------------------------------------
@@ -1557,7 +1586,16 @@ void FESlidingElasticInterface::UpdateContactPressures()
                 }
                 
                 FESurfaceElement* pme = sd.m_pme;
-                
+
+				// experimental, make sure that we have something to plot on the master surface even when 1-sided
+                //if (pme) {
+                //    int mint = pme->GaussPoints();
+                //    for (int j = 0; j < mint; ++j){
+                //        FESlidingElasticSurface::Data& md = static_cast<FESlidingElasticSurface::Data&>(*pme->GetMaterialPoint(j));
+                //        md.m_tr = -sd.m_tr;
+                //    }
+                //}
+
                 if (m_btwo_pass && pme)
                 {
                     // get secondary element data

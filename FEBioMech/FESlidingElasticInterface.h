@@ -63,6 +63,9 @@ public:
     //! constructor
     FESlidingElasticSurface(FEModel* pfem);
     
+    ////! hjs: destructor
+    //~FESlidingElasticSurface();
+
     //! initialization
     bool Init() override;
     
@@ -91,6 +94,7 @@ public:
      
 public:
     vec3d    m_Ft;     //!< total contact force (from equivalent nodal forces)
+    vector<vec3d> m_fe; // element net nodal force as evalulated in LoadVector, such that we can plot them for master and surface irrespectively of contact is two sided or not
 };
 
 //-----------------------------------------------------------------------------

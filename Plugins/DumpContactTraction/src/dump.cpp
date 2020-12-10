@@ -142,10 +142,18 @@ public:
 				// write cell data
 				fprintf(pFile, "CELL_DATA %d\n", ne);
 				fprintf(pFile, "VECTORS contact_traction float\n");
-				for (int k = 0; k < ne; ++k) {
-					fprintf(pFile, "%f %f %f\n", out[3*k], out[3*k+1], out[3*k+2]);
+				for (int e = 0; e < Si->Elements(); ++e) {
+					fprintf(pFile, "%f %f %f\n", out[3*e], out[3*e+1], out[3*e+2]);
 				}
-				
+				fprintf(pFile, "SCALARS contact_pressure float 1\n");
+				fprintf(pFile, "LOOKUP_TABLE default\n");
+				for (int e = 0; e < Si->Elements(); e++)
+				{
+					FESurfaceElement& el = Si->Element(e);
+					vec3d n = Si->SurfaceNormal(el, 0.5, 0.5);  // use normal in displaced element (natural coord (0.5,0.5) is center)					
+					fprintf(pFile, "%f\n", -n.x*out[3*e]-n.y*out[3*e+1]-n.z*out[3*e+2]);
+				}
+
 				// done writing
 				fclose(pFile);
 

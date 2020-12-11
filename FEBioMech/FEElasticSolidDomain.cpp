@@ -538,6 +538,7 @@ void FEElasticSolidDomain::ElementStiffness(const FETimeInfo& tp, int iel, matri
 //-----------------------------------------------------------------------------
 void FEElasticSolidDomain::Update(const FETimeInfo& tp)
 {
+	m_NegJacElems.clear();
 	bool berr = false;
 	int NE = Elements();
 	#pragma omp parallel for shared(NE, berr)
@@ -555,6 +556,8 @@ void FEElasticSolidDomain::Update(const FETimeInfo& tp)
 		{
 			#pragma omp critical
 			{
+				// store element id in vector
+				m_NegJacElems.push_back(e.m_iel);
 				// reset the logfile mode
 				berr = true;
 				if (e.DoOutput()) feLogError(e.what());

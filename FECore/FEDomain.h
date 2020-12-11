@@ -83,4 +83,6 @@ protected:
 
 	// helper function for unpacking element dofs
 	void UnpackLM(FEElement& el, const FEDofList& dof, vector<int>& lm);
+public:
+	vector<int> m_NegJacElems; // hjs: ids of elements that had negative jacobian during last update, usefull for dumping and plotting 
 };

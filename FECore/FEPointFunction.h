@@ -23,12 +23,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
-
-
-
 #pragma once
 #include "FEFunction1D.h"
-
 #include <vector>
 
 //-----------------------------------------------------------------------------
@@ -42,6 +38,8 @@ class DumpStream;
 
 class FECORE_API FEPointFunction : public FEFunction1D
 {
+	class Imp;
+
 public:
 	//! Load point structure
 	struct LOADPOINT
@@ -52,7 +50,7 @@ public:
 
 public:
 	//! Interpolation functions
-	enum INTFUNC { STEP = 0, LINEAR = 1, SMOOTH = 2 };
+	enum INTFUNC { STEP = 0, LINEAR = 1, SMOOTH = 2, POLYNOMIAL = 3, CSPLINE = 4, AKIMA = 5, STEFFEN = 6 };
 
 	//! Extend mode
 	enum EXTMODE { CONSTANT, EXTRAPOLATE, REPEAT, REPEAT_OFFSET };
@@ -62,7 +60,10 @@ public:
 	FEPointFunction(FEModel* fem);
 
 	//! destructor
-	virtual ~FEPointFunction();
+	~FEPointFunction();
+    
+    //! initialize
+    bool Init() override;
 
 	//! adds a point to the point curve
 	void Add(double x, double y);
@@ -102,21 +103,34 @@ public:
 
 public: // implement from base class
 
-		//! returns the value of the load curve at time
+	//! returns the value of the load curve at time
 	double value(double x) const override;
 
 	//! returns the derivative value at time
 	double derive(double x) const override;
 
+    //! returns the second derivative value at time
+    double deriv2(double x) const override;
+
+	//! returns the definite integral value between a and b
+	double integrate(double a, double b) const override;
+
 protected:
 	double ExtendValue(double t) const;
 
+// private:
+// 	//! returns the area of a trapezoid between a and b
+// 	double trap(double a, double b) const;
 
 	// TODO: I need to make this public so the parameters can be mapped to the FELoadCurve
 public:
 	int		m_fnc;	//!< interpolation function
 	int		m_ext;	//!< extend mode
+    bool    m_bln;  //!< points represent (ln(x),y) instead of (x,y)
 	std::vector<vec2d>	m_points;
+    
+private:
+	Imp*	imp;
 
 	DECLARE_FECORE_CLASS();
 };

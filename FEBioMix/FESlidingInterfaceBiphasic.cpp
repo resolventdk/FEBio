@@ -56,6 +56,7 @@ BEGIN_FECORE_CLASS(FESlidingInterfaceBiphasic, FEContactInterface)
 	ADD_PARAMETER(m_mu       , "fric_coeff"         );
 	ADD_PARAMETER(m_phi      , "contact_frac"       );
 	ADD_PARAMETER(m_bsmaug   , "smooth_aug"         );
+    ADD_PARAMETER(m_bsmfls   , "smooth_fls"         );
 END_FECORE_CLASS();
 
 //-----------------------------------------------------------------------------
@@ -69,6 +70,7 @@ FESlidingSurfaceBiphasic::Data::Data()
     m_pg    = 0.0;
     m_p1    = 0.0;
     m_mueff = 0.0;
+    m_fls   = 0.0;
     m_nu    = m_s1 = m_dg = vec3d(0,0,0);
     m_rs    = m_rsp = vec2d(0,0);
     m_bstick = false;
@@ -95,6 +97,7 @@ void FESlidingSurfaceBiphasic::Data::Serialize(DumpStream& ar)
 	ar & m_bstick;
 	ar & m_tr;
 	ar & m_mueff;
+    ar & m_fls;
 }
 
 //-----------------------------------------------------------------------------
@@ -453,6 +456,20 @@ void FESlidingSurfaceBiphasic::GetMuEffective(int nface, double& pg)
 }
 
 //-----------------------------------------------------------------------------
+void FESlidingSurfaceBiphasic::GetLocalFLS(int nface, double& pg)
+{
+    FESurfaceElement& el = Element(nface);
+    int ni = el.GaussPoints();
+    pg = 0;
+    for (int k = 0; k < ni; ++k)
+    {
+        Data& data = static_cast<Data&>(*el.GetMaterialPoint(k));
+        pg += data.m_fls;
+    }
+    pg /= ni;
+}
+
+//-----------------------------------------------------------------------------
 void FESlidingSurfaceBiphasic::GetNodalVectorGap(int nface, vec3d* pg)
 {
     FESurfaceElement& el = Element(nface);
@@ -520,6 +537,7 @@ FESlidingInterfaceBiphasic::FESlidingInterfaceBiphasic(FEModel* pfem) : FEContac
     m_bautopen = false;
     m_breloc = false;
     m_bsmaug = false;
+    m_bsmfls = false;
     m_bupdtpen = false;
     m_mu = 0.0;
     m_phi = 0.0;
@@ -759,6 +777,7 @@ void FESlidingInterfaceBiphasic::ProjectSurface(FESlidingSurfaceBiphasic& ss, FE
     np.SetTolerance(m_stol);
     np.SetSearchRadius(R);
     np.Init();
+    double psf = GetPenaltyScaleFactor();
     
     // if we need to project the nodes onto the secondary surface,
     // let's do this first
@@ -880,7 +899,7 @@ void FESlidingInterfaceBiphasic::ProjectSurface(FESlidingSurfaceBiphasic& ss, FE
                 // to Gerard's notes.
                 double g = nu*(r - q);
                 
-                double eps = m_epsn*pt.m_epsn;
+                double eps = m_epsn*pt.m_epsn*psf;
                 
                 double Ln = pt.m_Lmd + eps*g;
                 
@@ -1147,7 +1166,8 @@ vec3d FESlidingInterfaceBiphasic::ContactTraction(FESlidingSurfaceBiphasic& ss, 
     vec3d dr(0,0,0);
     vec3d t(0,0,0);
     pn = 0;
-    double tn = 0, ts = 0, tns = 0, mueff = 0;
+    double tn = 0, ts = 0, mueff = 0;
+    double psf = GetPenaltyScaleFactor();
     
     // get the mesh
     FEMesh& m = GetFEModel()->GetMesh();
@@ -1159,7 +1179,7 @@ vec3d FESlidingInterfaceBiphasic::ContactTraction(FESlidingSurfaceBiphasic& ss, 
 	FESlidingSurfaceBiphasic::Data& data = static_cast<FESlidingSurfaceBiphasic::Data&>(*se.GetMaterialPoint(n));
 
     // penalty
-    double eps = m_epsn*data.m_epsn;
+    double eps = m_epsn*data.m_epsn*psf;
     
     // normal gap
     double g = data.m_gap;
@@ -1185,8 +1205,17 @@ vec3d FESlidingInterfaceBiphasic::ContactTraction(FESlidingSurfaceBiphasic& ss, 
     
     // zero the effective friction coefficient
     data.m_mueff = 0.0;
+    data.m_fls = 0.0;
     data.m_s1 = vec3d(0,0,0);
     
+    // get local FLS from element projection
+    double fls = 0;
+    if (m_bsmfls) {
+        double lfls[FEElement::MAX_INTPOINTS];
+        ss.GetGPLocalFLS(nel, lfls);
+        fls = lfls[n];
+    }
+
     // if we just returned from an augmentation, do not update stick or slip status
     if (m_bfreeze && pme) {
         if (data.m_bstick) {
@@ -1208,7 +1237,11 @@ vec3d FESlidingInterfaceBiphasic::ContactTraction(FESlidingSurfaceBiphasic& ss, 
             pn = MBRACKET(-tn);
             
             // calculate effective friction coefficient
-            if (pn > 0) data.m_mueff = ts/pn;
+            if (pn > 0)
+            {
+                data.m_mueff = ts/pn;
+                data.m_fls = m_bsmfls ? fls : p/pn;
+            }
             
             // store the previous values as the current
             data.m_pme = data.m_pmep;
@@ -1241,8 +1274,9 @@ vec3d FESlidingInterfaceBiphasic::ContactTraction(FESlidingSurfaceBiphasic& ss, 
                 s1 = SlipTangent(ss, nel, n, ms, dh, dr);
                 
                 // calculate effective friction coefficient
-                data.m_mueff = m_mu*(1.0-(1.0-m_phi)*(p/pn));
-                if (pn < (1-m_phi)*p) data.m_mueff = 0.0;
+                data.m_fls = m_bsmfls ? fls : p/pn;
+                data.m_mueff = m_mu*(1.0-(1.0-m_phi)*data.m_fls);
+                data.m_mueff = MBRACKET(data.m_mueff);
                 
                 // total traction
                 t = nu*(-pn) - s1*pn*data.m_mueff;
@@ -1282,8 +1316,9 @@ vec3d FESlidingInterfaceBiphasic::ContactTraction(FESlidingSurfaceBiphasic& ss, 
                 // calculate effective friction coefficient
                 if (tn != 0)
                 {
-                    mueff = m_mu*(1.0-(1.0-m_phi)*(p/(-tn)));
-                    if ( (-p/tn) > (1.0/(1-m_phi)) ) mueff = 0.0;
+                    data.m_fls = m_bsmfls ? fls : p/(-tn);
+                    mueff = m_mu*(1.0-(1.0-m_phi)*data.m_fls);
+                    mueff = MBRACKET(mueff);
                 }
                 
                 // check if stick
@@ -1296,7 +1331,10 @@ vec3d FESlidingInterfaceBiphasic::ContactTraction(FESlidingSurfaceBiphasic& ss, 
                     pn = MBRACKET(-tn);
                     
                     // calculate effective friction coefficient
-                    if (pn > 0) data.m_mueff = ts/pn;
+                    if (pn > 0) {
+                        data.m_mueff = ts/pn;
+                        data.m_fls = m_bsmfls ? fls : p/pn;
+                    }
                     
                     // store the previous values as the current
                     data.m_pme = data.m_pmep;
@@ -1330,8 +1368,10 @@ vec3d FESlidingInterfaceBiphasic::ContactTraction(FESlidingSurfaceBiphasic& ss, 
                         s1 = SlipTangent(ss, nel, n, ms, dh, dr);
                         
                         // calculate effective friction coefficient
-                        data.m_mueff = m_mu*(1.0-(1.0-m_phi)*(p/pn));
-                        if (pn < (1-m_phi)*p) data.m_mueff = 0.0;
+                        data.m_fls = p/pn;
+                        data.m_fls = m_bsmfls ? fls : p/pn;
+                        data.m_mueff = m_mu*(1.0-(1.0-m_phi)*data.m_fls);
+                        data.m_mueff = MBRACKET(data.m_mueff);
 
                         // total traction
                         t = nu*(-pn) - s1*pn*data.m_mueff;
@@ -1362,8 +1402,9 @@ vec3d FESlidingInterfaceBiphasic::ContactTraction(FESlidingSurfaceBiphasic& ss, 
                     s1 = SlipTangent(ss, nel, n, ms, dh, dr);
                     
                     // calculate effective friction coefficient
-                    data.m_mueff = m_mu*(1.0-(1.0-m_phi)*(p/pn));
-                    if (pn < (1-m_phi)*p) data.m_mueff = 0.0;
+                    data.m_fls = m_bsmfls ? fls : p/pn;
+                    data.m_mueff = m_mu*(1.0-(1.0-m_phi)*data.m_fls);
+                    data.m_mueff = MBRACKET(data.m_mueff);
 
                     // total traction
                     t = nu*(-pn) - s1*pn*data.m_mueff;

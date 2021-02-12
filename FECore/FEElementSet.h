@@ -51,6 +51,8 @@ public:
 	void Create(const std::vector<int>& elemList);
 	void Create(FEDomain* dom, const std::vector<int>& elemList);
 
+	void CopyFrom(FEElementSet& eset);
+
 	// add another element set
 	void Add(const FEElementSet& set);
 
@@ -68,6 +70,7 @@ public:
 	// return the local index of an element into the element set
 	// returns -1 if the element is not part of element set
 	int GetLocalIndex(const FEElement& el) const;
+	bool Contains(const FEElement& el) const;
 
 	// Get the element ID list
 	const std::vector<int>& GetElementIDList() const { return m_Elem; }
@@ -102,5 +105,12 @@ protected:
 
 inline int FEElementSet::GetLocalIndex(const FEElement& el) const
 {
-	return m_LUT[el.GetID() - m_minID];
+	int eid = el.GetID();
+	if ((eid < m_minID) || (eid > m_maxID)) return -1;
+	else return m_LUT[el.GetID() - m_minID];
+}
+
+inline bool FEElementSet::Contains(const FEElement& el) const
+{
+	return (GetLocalIndex(el) != -1);
 }

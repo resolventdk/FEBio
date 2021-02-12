@@ -192,7 +192,7 @@ void FEBiphasicShellDomain::Reset()
 		FEBiphasicMaterialPoint& pt = *(mp.ExtractData<FEBiphasicMaterialPoint>());
 
 		// initialize referential solid volume fraction
-		pt.m_phi0 = pmb->m_phi0;
+		pt.m_phi0 = pmb->m_phi0(mp);
 	});
 }
 
@@ -945,6 +945,9 @@ void FEBiphasicShellDomain::UpdateElementStress(int iel)
         
         // update specialized material points
         m_pMat->UpdateSpecializedMaterialPoints(mp, GetFEModel()->GetTime());
+        
+        // calculate the solid stress at this material point
+        ppt.m_ss = m_pMat->GetElasticMaterial()->Stress(mp);
         
         // calculate the stress at this material point
         pt.m_s = m_pMat->Stress(mp);

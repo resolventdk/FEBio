@@ -45,7 +45,9 @@ SOFTWARE.*/
 #include <FECore/FEDomainMap.h>
 #include <FECore/FEEdge.h>
 #include <FECore/FEConstValueVec3.h>
+#include <FECore/log.h>
 #include <FEBioMech/FESSIShellDomain.h>
+#include <sstream>
 
 //-----------------------------------------------------------------------------
 FEModelBuilder::FEModelBuilder(FEModel& fem) : m_fem(fem)
@@ -554,7 +556,8 @@ FE_Element_Spec FEModelBuilder::ElementSpec(const char* sztype)
 	{
 		// new way for defining element type and integration rule at the same time
 		// this is useful for multi-step analyses where the geometry is read in before the control section.
-		if      (strcmp(sztype, "TET10G4"     ) == 0) { eshape = ET_TET10; m_ntet10 = FE_TET10G4; }
+		if      (strcmp(sztype, "TET4G4"      ) == 0) { eshape = ET_TET4 ; m_ntet4  = FE_TET4G4; }
+		else if (strcmp(sztype, "TET10G4"     ) == 0) { eshape = ET_TET10; m_ntet10 = FE_TET10G4; }
 		else if (strcmp(sztype, "TET10G8"     ) == 0) { eshape = ET_TET10; m_ntet10 = FE_TET10G8; }
 		else if (strcmp(sztype, "TET10GL11"   ) == 0) { eshape = ET_TET10; m_ntet10 = FE_TET10GL11; }
 		else if (strcmp(sztype, "TET10G4_S3"  ) == 0) { eshape = ET_TET10; m_ntet10 = FE_TET10G4;   m_ntri6 = FE_TRI6G3; }
@@ -684,7 +687,12 @@ void FEModelBuilder::ApplyParameterMaps()
 		FEParam& p = *mp.pp;
 
 		FEDataMap* data = (FEDataMap*)mesh.FindDataMap(mp.szname);
-		assert(data);
+		if (data == nullptr)
+		{
+			stringstream ss;
+			ss << "Can't find map \"" << mp.szname << "\" for parameter \"" << p.name() << "\"";
+			throw std::runtime_error(ss.str());
+		}
 
 		FEItemList* itemList = data->GetItemList();
 
@@ -693,6 +701,13 @@ void FEModelBuilder::ApplyParameterMaps()
 		{
 			FEParamDouble& v = p.value<FEParamDouble>(mp.index);
 			FEMappedValue* map = new FEMappedValue(&m_fem);
+			if (data->DataType() != FE_DOUBLE)
+			{
+				std::stringstream ss;
+				ss << "Cannot assign map \"" << data->GetName() << "\" to parameter \"" << p.name() << "\" : bad data type";
+				string err = ss.str();
+				throw std::runtime_error(err.c_str());
+			}
 			map->setDataMap(data);
 			v.setValuator(map);
 			v.SetItemList(itemList);
@@ -701,6 +716,13 @@ void FEModelBuilder::ApplyParameterMaps()
 		{
 			FEParamVec3& v = p.value<FEParamVec3>();
 			FEMappedValueVec3* map = new FEMappedValueVec3(&m_fem);
+			if (data->DataType() != FE_VEC3D)
+			{
+				std::stringstream ss;
+				ss << "Cannot assign map \"" << data->GetName() << "\" to parameter \"" << p.name() << "\" : bad data type";
+				string err = ss.str();
+				throw std::runtime_error(err.c_str());
+			}
 			map->setDataMap(data);
 			v.setValuator(map);
 			v.SetItemList(itemList);
@@ -709,6 +731,13 @@ void FEModelBuilder::ApplyParameterMaps()
 		{
 			FEParamMat3d& v = p.value<FEParamMat3d>();
 			FEMappedValueMat3d* map = fecore_alloc(FEMappedValueMat3d, &m_fem);
+			if (data->DataType() != FE_MAT3D)
+			{
+				std::stringstream ss;
+				ss << "Cannot assign map \"" << data->GetName() << "\" to parameter \"" << p.name() << "\" : bad data type";
+				string err = ss.str();
+				throw std::runtime_error(err.c_str());
+			}
 			map->setDataMap(data);
 			v.setValuator(map);
 			v.SetItemList(itemList);

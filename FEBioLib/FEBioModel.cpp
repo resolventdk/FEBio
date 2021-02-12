@@ -132,7 +132,7 @@ FEBioModel::FEBioModel()
 	m_dumpLevel = FE_DUMP_NEVER;
 
 	// --- I/O-Data ---
-	m_debug = false;
+	m_ndebug = 0;
 	m_becho = true;
 	m_plot = nullptr;
 	m_writeMesh = false;
@@ -144,6 +144,8 @@ FEBioModel::FEBioModel()
 
 	m_pltCompression = 0;
 	m_pltAppendOnRestart = true;
+
+	m_lastUpdate = -1;
 
 	// Add the output callback
 	// We call this function always since we want to flush the logfile for each event.
@@ -174,10 +176,10 @@ int FEBioModel::GetLinearSolverTime()
 
 //-----------------------------------------------------------------------------
 //! set the debug level
-void FEBioModel::SetDebugFlag(bool b) { m_debug = b; }
+void FEBioModel::SetDebugLevel(int debugLvl) { m_ndebug = debugLvl; }
 
 //! get the debug level
-bool FEBioModel::GetDebugFlag() { return m_debug; }
+int FEBioModel::GetDebugLevel() { return m_ndebug; }
 
 //! set the dump level (for cold restarts)
 void FEBioModel::SetDumpLevel(int dumpLevel) { m_dumpLevel = dumpLevel; }
@@ -538,17 +540,18 @@ void FEBioModel::Write(unsigned int nwhen)
 				bool bout = false;
 
 				// see if we need to output something
-				bool bdebug = GetDebugFlag();
+				int ndebug = GetDebugLevel();
 
 				// write a new mesh section if needed
 				if (nwhen == CB_REMESH)
 				{
 					m_writeMesh = true;
+					m_lastUpdate = -1;
 				}
 
-				if (bdebug)
+				if (ndebug == 1)
 				{
-					if ((nwhen == CB_INIT) || (nwhen == CB_MODEL_UPDATE) || (nwhen == CB_SOLVED))
+					if ((nwhen == CB_INIT) || (nwhen == CB_MODEL_UPDATE) || (nwhen == CB_MINOR_ITERS) || (nwhen == CB_SOLVED) || (nwhen == CB_REMESH))
 					{
 						bout = true;
 					}
@@ -572,7 +575,16 @@ void FEBioModel::Write(unsigned int nwhen)
 
 					switch (nwhen)
 					{
-					case CB_MINOR_ITERS: if (nplt == FE_PLOT_MINOR_ITRS   ) bout = true; break;
+					case CB_MINOR_ITERS: 
+					{
+						if (nplt == FE_PLOT_MINOR_ITRS) bout = true;
+						if ((ndebug == 2) && (NegativeJacobian::IsThrown()))
+						{
+							bout = true;
+							NegativeJacobian::clearFlag();
+						}
+					}
+					break;
 					case CB_MAJOR_ITERS  : 
 						if ((nplt == FE_PLOT_MAJOR_ITRS ) && inRange && isStride) bout = true; 
 						if ((nplt == FE_PLOT_MUST_POINTS) && (pstep->m_timeController) && (pstep->m_timeController->m_nmust >= 0)) bout = true;
@@ -603,8 +615,10 @@ void FEBioModel::Write(unsigned int nwhen)
 				}
 
 				// output the state if requested
-				if (bout) 
+				if (bout && (m_lastUpdate != UpdateCounter()) )
 				{
+					m_lastUpdate = UpdateCounter();
+
 					// update the plot objects
 					UpdatePlotObjects();
 
@@ -1054,8 +1068,9 @@ void FEBioModel::UpdatePlotObjects()
 				{
 					FEBioPlotFile::LineObject* po = plt->AddLineObject(name);
 					po->m_tag = 1;
-					po->m_r1 = ra;
-					po->m_r2 = rb;
+					po->m_rot = quatd(0, vec3d(1, 0, 0));
+					po->m_r1 = rs->m_at;
+					po->m_r2 = rs->m_bt;
                     po->AddData("Relative translation (GCS)" , PLT_VEC3F, new FEPlotRigidConnectorTranslationGCS(this, rs));
                     po->AddData("Relative rotation (GCS)", PLT_VEC3F, new FEPlotRigidConnectorRotationGCS(this, rs));
                     po->AddData("Reaction force (GCS)" , PLT_VEC3F, new FEPlotRigidConnectorForce(this, rs));
@@ -1067,8 +1082,9 @@ void FEBioModel::UpdatePlotObjects()
 				{
 					FEBioPlotFile::LineObject* po = plt->AddLineObject(name);
 					po->m_tag = 2;
-					po->m_r1 = ra;
-					po->m_r2 = rb;
+                    po->m_rot = quatd(0, vec3d(1, 0, 0));
+					po->m_r1 = rd->m_at;
+					po->m_r2 = rd->m_bt;
                     po->AddData("Relative translation (GCS)" , PLT_VEC3F, new FEPlotRigidConnectorTranslationGCS(this, rd));
                     po->AddData("Relative rotation (GCS)", PLT_VEC3F, new FEPlotRigidConnectorRotationGCS(this, rd));
                     po->AddData("Reaction force (GCS)" , PLT_VEC3F, new FEPlotRigidConnectorForce(this, rd));
@@ -1093,8 +1109,9 @@ void FEBioModel::UpdatePlotObjects()
                 {
                     FEBioPlotFile::LineObject* po = plt->AddLineObject(name);
                     po->m_tag = 4;
-                    po->m_r1 = ra;
-                    po->m_r2 = rb;
+                    po->m_rot = quatd(0, vec3d(1, 0, 0));
+                    po->m_r1 = rcf->m_at;
+                    po->m_r2 = rcf->m_bt;
                     po->AddData("Relative translation (GCS)" , PLT_VEC3F, new FEPlotRigidConnectorTranslationGCS(this, rcf));
                     po->AddData("Relative rotation (GCS)", PLT_VEC3F, new FEPlotRigidConnectorRotationGCS(this, rcf));
                     po->AddData("Reaction force (GCS)" , PLT_VEC3F, new FEPlotRigidConnectorForce(this, rcf));
@@ -1119,8 +1136,8 @@ void FEBioModel::UpdatePlotObjects()
 				if (rs)
 				{
 					FEBioPlotFile::LineObject* po = plt->GetLineObject(n++);
-					po->m_r1 = ra;
-					po->m_r2 = rb;
+					po->m_r1 = rs->m_at;
+					po->m_r2 = rs->m_bt;
 				}
 
 				FERigidDamper* rd = dynamic_cast<FERigidDamper*>(prc);
@@ -1143,8 +1160,8 @@ void FEBioModel::UpdatePlotObjects()
                 if (rcf)
                 {
                     FEBioPlotFile::LineObject* po = plt->GetLineObject(n++);
-                    po->m_r1 = ra;
-                    po->m_r2 = rb;
+                    po->m_r1 = rcf->m_at;
+                    po->m_r2 = rcf->m_bt;
                 }
 			}
 		}
@@ -1273,6 +1290,12 @@ void FEBioModel::SerializeIOData(DumpStream &ar)
 			// create a new plot file
 			pplt->SetCompression(m_pltCompression);
 
+			// set the software string
+			const char* szver = febio::getVersionString();
+			char szbuf[256] = { 0 };
+			sprintf(szbuf, "FEBio %s", szver);
+			pplt->SetSoftwareString(szbuf);
+
 			// add plot variables
 			for (FEPlotVariable& vi : m_pltData)
 			{
@@ -1352,6 +1375,7 @@ bool FEBioModel::Init()
 	}
 
 	FEBioPlotFile* pplt = nullptr;
+	m_lastUpdate = -1;
 
 	// open plot database file
 	FEAnalysis* step = GetCurrentStep();
@@ -1364,6 +1388,12 @@ bool FEBioModel::Init()
 
 			// set compression
 			pplt->SetCompression(m_pltCompression);
+
+			// set the software string
+			const char* szver = febio::getVersionString();
+			char szbuf[256] = { 0 };
+			sprintf(szbuf, "FEBio %s", szver);
+			pplt->SetSoftwareString(szbuf);
 
 			// add plot variables
 			for (FEPlotVariable& vi : m_pltData)

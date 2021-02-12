@@ -368,215 +368,224 @@ void FERigidSolver::RigidStiffnessSolid(SparseMatrix& K, vector<double>& ui, vec
     // loop over columns
     for (j = 0; j<n; ++j)
     {
-        FENode& nodej = mesh.Node(en[j]);
-        if (nodej.m_rid >= 0)
-        {
-            // this is a rigid interface node
-            // get the rigid body this node is attached to
-            FERigidBody& RBj = *fem.GetRigidBody(nodej.m_rid);
-            
-            // get the rigid body equation nrs.
-            lmj = RBj.m_LM;
-            
-            // get the relative distance to the center of mass
-            zj = nodej.m_rt - RBj.m_rt;
-            Zj.skew(zj);
-            
-            // loop over rows
-            for (i = 0; i<n; ++i)
-            {
-                // get the element sub-matrix
-                for (k = 0; k<ndof; ++k)
-                    for (l = 0; l<ndof; ++l)
-                        kij[k][l] = ke[ndof*i + k][ndof*j + l];
-                
-                mat3d Kuu(kij[0][0], kij[0][1], kij[0][2],
-                          kij[1][0], kij[1][1], kij[1][2],
-                          kij[2][0], kij[2][1], kij[2][2]);
-                
-                FENode& nodei = mesh.Node(en[i]);
-                
-                if (nodei.m_rid >= 0)
-                {
-                    // node i is also a rigid body node
-                    // get the rigid body this node is attached to
-                    FERigidBody& RBi = *fem.GetRigidBody(nodei.m_rid);
-                    
-                    lmi = RBi.m_LM;
-                    
-                    // get the relative distance (use alpha rule)
-                    zi = (nodei.m_rt - RBi.m_rt)*alpha + (nodei.m_rp - RBi.m_rp)*(1 - alpha);
-                    Zi.skew(zi);
-                    
-                    mat3d M;
-                    
-                    // Kuu transformation to Krr
-                    M = Kuu*alpha;
-                    KR[0][0] = M[0][0]; KR[0][1] = M[0][1]; KR[0][2] = M[0][2];
-                    KR[1][0] = M[1][0]; KR[1][1] = M[1][1]; KR[1][2] = M[1][2];
-                    KR[2][0] = M[2][0]; KR[2][1] = M[2][1]; KR[2][2] = M[2][2];
-                    
-                    
-                    // Kuu transformation to Krq
-                    M = Kuu*Zj*(-alpha);
-                    KR[0][3] = M[0][0]; KR[0][4] = M[0][1]; KR[0][5] = M[0][2];
-                    KR[1][3] = M[1][0]; KR[1][4] = M[1][1]; KR[1][5] = M[1][2];
-                    KR[2][3] = M[2][0]; KR[2][4] = M[2][1]; KR[2][5] = M[2][2];
+		if (en[j] >= 0)
+		{
+			FENode& nodej = mesh.Node(en[j]);
+			if (nodej.m_rid >= 0)
+			{
+				// this is a rigid interface node
+				// get the rigid body this node is attached to
+				FERigidBody& RBj = *fem.GetRigidBody(nodej.m_rid);
 
-                    
-                    // Kuu transformation to Kqr
-                    M = Zi*Kuu*alpha;
-                    KR[3][0] = M[0][0]; KR[3][1] = M[0][1]; KR[3][2] = M[0][2];
-                    KR[4][0] = M[1][0]; KR[4][1] = M[1][1]; KR[4][2] = M[1][2];
-                    KR[5][0] = M[2][0]; KR[5][1] = M[2][1]; KR[5][2] = M[2][2];
+				// get the rigid body equation nrs.
+				lmj = RBj.m_LM;
 
-                    
-                    // Kuu transformation to Kqq
-                    M = Zi*Kuu*Zj*(-alpha);
-                    KR[3][3] = M[0][0]; KR[3][4] = M[0][1]; KR[3][5] = M[0][2];
-                    KR[4][3] = M[1][0]; KR[4][4] = M[1][1]; KR[4][5] = M[1][2];
-                    KR[5][3] = M[2][0]; KR[5][4] = M[2][1]; KR[5][5] = M[2][2];
-                    
-                    // add the stiffness components to the Krr matrix
-                    for (k = 0; k<6; ++k)
-                        for (l = 0; l<6; ++l)
-                        {
-                            J = lmj[k];
-                            I = lmi[l];
-                            
-                            if (I >= 0)
-                            {
-                                // multiply KR by alpha for alpha rule
-                                if (J < -1) F[I] -= KR[l][k]*ui[-J - 2];
-                                else if (J >= 0) K.add(I, J, KR[l][k]);
-                            }
-                        }
-                    
-                    // we still need to couple the non-rigid degrees of node i to the
-                    // rigid dofs of node j
-                    for (k = 3; k<ndof; ++k) {
-                        vec3d kpu(kij[k][0], kij[k][1], kij[k][2]);
-                        vec3d m = kpu*alpha;
-                        KF[k][0] = m.x; KF[k][1] = m.y; KF[k][2] = m.z;
-                        m = Zj*kpu*alpha;
-                        KF[k][3] = m.x; KF[k][4] = m.y; KF[k][5] = m.z;
-                    }
-                    
-                    for (k = 0; k<6; ++k)
-                        for (l = 3; l<ndof; ++l)
-                        {
-                            J = lmj[k];
-                            I = elmi[ndof*i + l];
-                            
-                            if (I >= 0)
-                            {
-                                // multiply KF by alpha for alpha rule
-                                if (J < -1) F[I] -= KF[l][k] * ui[-J - 2];
-                                else if (J >= 0) K.add(I, J, KF[l][k]);
-                            }
-                        }
-                    
-                    // now the transpose location
-                    for (l = 3; l<ndof; ++l) {
-                        vec3d kup(kij[0][l], kij[1][l], kij[2][l]);
-                        vec3d m = Zi*kup;
-                        KF[l][0] = kup.x; KF[l][1] = kup.y; KF[l][2] = kup.z;
-                        KF[l][3] = m.x; KF[l][4] = m.y; KF[l][5] = m.z;
-                    }
-                    
-                    for (k = 0; k<6; ++k)
-                        for (l = 3; l<ndof; ++l)
-                        {
-                            J = elmj[ndof*j + l];
-                            I = lmi[k];
-                            
-                            if (I >= 0)
-                            {
-                                if (J < -1) F[I] -= KF[l][k] * ui[-J - 2];
-                                else if (J >= 0) K.add(I, J, KF[l][k]);
-                            }
-                        }
-                    
-                }
-                else
-                {
-                    // node i is not a rigid body node
-                    // add the stiffness components to the Kfr matrix
-                    
-                    // Kij
-                    for (k = 0; k<ndof; ++k) {
-                        vec3d kpu(kij[k][0], kij[k][1], kij[k][2]);
-                        vec3d m = kpu*alpha;
-                        KF[k][0] = m.x; KF[k][1] = m.y; KF[k][2] = m.z;
-                        m = Zj*kpu*alpha;
-                        KF[k][3] = m.x; KF[k][4] = m.y; KF[k][5] = m.z;
-                    }
-                    
-                    for (k = 0; k<6; ++k)
-                        for (l = 0; l<ndof; ++l)
-                        {
-                            J = lmj[k];
-                            I = elmi[ndof*i + l];
-                            
-                            if (I >= 0)
-                            {
-                                // multiply KF by alpha for alpha rule
-                                if (J < -1) F[I] -= KF[l][k] * ui[-J - 2];
-                                else if (J >= 0) K.add(I, J, KF[l][k]);
-                            }
-                        }
-                }
-            }
-        }
-        else
-        {
-            // loop over rows
-            for (i = 0; i<n; ++i)
-            {
-                FENode& nodei = mesh.Node(en[i]);
-                if (nodei.m_rid >= 0)
-                {
-                    // node i is a rigid body
-                    // get the rigid body this node is attached to
-                    FERigidBody& RBi = *fem.GetRigidBody(nodei.m_rid);
-                    
-                    // get the rigid body equation nrs.
-                    lmi = RBi.m_LM;
-                    
-                    // get the relative distance (use alpha rule)
-                    zi = (nodei.m_rt - RBi.m_rt)*alpha + (nodei.m_rp - RBi.m_rp)*(1 - alpha);
-                    Zi.skew(zi);
-                    
-                    // get the element sub-matrix
-                    for (k = 0; k<ndof; ++k)
-                        for (l = 0; l<ndof; ++l)
-                            kij[k][l] = ke[ndof*i + k][ndof*j + l];
-                    
-                    // add the stiffness components to the Krf matrix
-                    
-                    // Kij
-                    for (k = 0; k<ndof; ++k) {
-                        vec3d kup(kij[0][k], kij[1][k], kij[2][k]);
-                        vec3d m = Zi*kup;
-                        KF[k][0] = kup.x; KF[k][1] = kup.y; KF[k][2] = kup.z;
-                        KF[k][3] = m.x; KF[k][4] = m.y; KF[k][5] = m.z;
-                    }
-                    
-                    for (k = 0; k<6; ++k)
-                        for (l = 0; l<ndof; ++l)
-                        {
-                            I = lmi[k];
-                            J = elmj[ndof*j + l];
-                            
-                            if (I >= 0)
-                            {
-                                if (J < -1) F[I] -= KF[l][k] * ui[-J - 2];
-                                else if (J >= 0) K.add(I, J, KF[l][k]);
-                            }
-                        }
-                }
-            }
-        }
+				// get the relative distance to the center of mass
+				zj = nodej.m_rt - RBj.m_rt;
+				Zj.skew(zj);
+
+				// loop over rows
+				for (i = 0; i < n; ++i)
+				{
+					// get the element sub-matrix
+					for (k = 0; k < ndof; ++k)
+						for (l = 0; l < ndof; ++l)
+							kij[k][l] = ke[ndof*i + k][ndof*j + l];
+
+					mat3d Kuu(kij[0][0], kij[0][1], kij[0][2],
+						kij[1][0], kij[1][1], kij[1][2],
+						kij[2][0], kij[2][1], kij[2][2]);
+
+					if (en[i] >= 0)
+					{
+						FENode& nodei = mesh.Node(en[i]);
+
+						if (nodei.m_rid >= 0)
+						{
+							// node i is also a rigid body node
+							// get the rigid body this node is attached to
+							FERigidBody& RBi = *fem.GetRigidBody(nodei.m_rid);
+
+							lmi = RBi.m_LM;
+
+							// get the relative distance (use alpha rule)
+							zi = (nodei.m_rt - RBi.m_rt)*alpha + (nodei.m_rp - RBi.m_rp)*(1 - alpha);
+							Zi.skew(zi);
+
+							mat3d M;
+
+							// Kuu transformation to Krr
+							M = Kuu * alpha;
+							KR[0][0] = M[0][0]; KR[0][1] = M[0][1]; KR[0][2] = M[0][2];
+							KR[1][0] = M[1][0]; KR[1][1] = M[1][1]; KR[1][2] = M[1][2];
+							KR[2][0] = M[2][0]; KR[2][1] = M[2][1]; KR[2][2] = M[2][2];
+
+
+							// Kuu transformation to Krq
+							M = Kuu * Zj*(-alpha);
+							KR[0][3] = M[0][0]; KR[0][4] = M[0][1]; KR[0][5] = M[0][2];
+							KR[1][3] = M[1][0]; KR[1][4] = M[1][1]; KR[1][5] = M[1][2];
+							KR[2][3] = M[2][0]; KR[2][4] = M[2][1]; KR[2][5] = M[2][2];
+
+
+							// Kuu transformation to Kqr
+							M = Zi * Kuu*alpha;
+							KR[3][0] = M[0][0]; KR[3][1] = M[0][1]; KR[3][2] = M[0][2];
+							KR[4][0] = M[1][0]; KR[4][1] = M[1][1]; KR[4][2] = M[1][2];
+							KR[5][0] = M[2][0]; KR[5][1] = M[2][1]; KR[5][2] = M[2][2];
+
+
+							// Kuu transformation to Kqq
+							M = Zi * Kuu*Zj*(-alpha);
+							KR[3][3] = M[0][0]; KR[3][4] = M[0][1]; KR[3][5] = M[0][2];
+							KR[4][3] = M[1][0]; KR[4][4] = M[1][1]; KR[4][5] = M[1][2];
+							KR[5][3] = M[2][0]; KR[5][4] = M[2][1]; KR[5][5] = M[2][2];
+
+							// add the stiffness components to the Krr matrix
+							for (k = 0; k < 6; ++k)
+								for (l = 0; l < 6; ++l)
+								{
+									J = lmj[k];
+									I = lmi[l];
+
+									if (I >= 0)
+									{
+										// multiply KR by alpha for alpha rule
+										if (J < -1) F[I] -= KR[l][k] * ui[-J - 2];
+										else if (J >= 0) K.add(I, J, KR[l][k]);
+									}
+								}
+
+							// we still need to couple the non-rigid degrees of node i to the
+							// rigid dofs of node j
+							for (k = 3; k < ndof; ++k) {
+								vec3d kpu(kij[k][0], kij[k][1], kij[k][2]);
+								vec3d m = kpu * alpha;
+								KF[k][0] = m.x; KF[k][1] = m.y; KF[k][2] = m.z;
+								m = Zj * kpu*alpha;
+								KF[k][3] = m.x; KF[k][4] = m.y; KF[k][5] = m.z;
+							}
+
+							for (k = 0; k < 6; ++k)
+								for (l = 3; l < ndof; ++l)
+								{
+									J = lmj[k];
+									I = elmi[ndof*i + l];
+
+									if (I >= 0)
+									{
+										// multiply KF by alpha for alpha rule
+										if (J < -1) F[I] -= KF[l][k] * ui[-J - 2];
+										else if (J >= 0) K.add(I, J, KF[l][k]);
+									}
+								}
+
+							// now the transpose location
+							for (l = 3; l < ndof; ++l) {
+								vec3d kup(kij[0][l], kij[1][l], kij[2][l]);
+								vec3d m = Zi * kup;
+								KF[l][0] = kup.x; KF[l][1] = kup.y; KF[l][2] = kup.z;
+								KF[l][3] = m.x; KF[l][4] = m.y; KF[l][5] = m.z;
+							}
+
+							for (k = 0; k < 6; ++k)
+								for (l = 3; l < ndof; ++l)
+								{
+									J = elmj[ndof*j + l];
+									I = lmi[k];
+
+									if (I >= 0)
+									{
+										if (J < -1) F[I] -= KF[l][k] * ui[-J - 2];
+										else if (J >= 0) K.add(I, J, KF[l][k]);
+									}
+								}
+
+						}
+						else
+						{
+							// node i is not a rigid body node
+							// add the stiffness components to the Kfr matrix
+
+							// Kij
+							for (k = 0; k < ndof; ++k) {
+								vec3d kpu(kij[k][0], kij[k][1], kij[k][2]);
+								vec3d m = kpu * alpha;
+								KF[k][0] = m.x; KF[k][1] = m.y; KF[k][2] = m.z;
+								m = Zj * kpu*alpha;
+								KF[k][3] = m.x; KF[k][4] = m.y; KF[k][5] = m.z;
+							}
+
+							for (k = 0; k < 6; ++k)
+								for (l = 0; l < ndof; ++l)
+								{
+									J = lmj[k];
+									I = elmi[ndof*i + l];
+
+									if (I >= 0)
+									{
+										// multiply KF by alpha for alpha rule
+										if (J < -1) F[I] -= KF[l][k] * ui[-J - 2];
+										else if (J >= 0) K.add(I, J, KF[l][k]);
+									}
+								}
+						}
+					}
+				}
+			}
+			else
+			{
+				// loop over rows
+				for (i = 0; i < n; ++i)
+				{
+					if (en[i] >= 0)
+					{
+						FENode& nodei = mesh.Node(en[i]);
+						if (nodei.m_rid >= 0)
+						{
+							// node i is a rigid body
+							// get the rigid body this node is attached to
+							FERigidBody& RBi = *fem.GetRigidBody(nodei.m_rid);
+
+							// get the rigid body equation nrs.
+							lmi = RBi.m_LM;
+
+							// get the relative distance (use alpha rule)
+							zi = (nodei.m_rt - RBi.m_rt)*alpha + (nodei.m_rp - RBi.m_rp)*(1 - alpha);
+							Zi.skew(zi);
+
+							// get the element sub-matrix
+							for (k = 0; k < ndof; ++k)
+								for (l = 0; l < ndof; ++l)
+									kij[k][l] = ke[ndof*i + k][ndof*j + l];
+
+							// add the stiffness components to the Krf matrix
+
+							// Kij
+							for (k = 0; k < ndof; ++k) {
+								vec3d kup(kij[0][k], kij[1][k], kij[2][k]);
+								vec3d m = Zi * kup;
+								KF[k][0] = kup.x; KF[k][1] = kup.y; KF[k][2] = kup.z;
+								KF[k][3] = m.x; KF[k][4] = m.y; KF[k][5] = m.z;
+							}
+
+							for (k = 0; k < 6; ++k)
+								for (l = 0; l < ndof; ++l)
+								{
+									I = lmi[k];
+									J = elmj[ndof*j + l];
+
+									if (I >= 0)
+									{
+										if (J < -1) F[I] -= KF[l][k] * ui[-J - 2];
+										else if (J >= 0) K.add(I, J, KF[l][k]);
+									}
+								}
+						}
+					}
+				}
+			}
+		}
     }
 }
 
@@ -1319,8 +1328,6 @@ void FERigidSolverNew::UpdateRigidBodies(vector<double>& Ui, vector<double>& ui)
 		// they need to be interpreted differently than displacements
 		if (RB.m_prb == 0)
 		{
-			quatd qdu;          // quaternion of net increment
-
 			if (RB.m_bpofr) {
 				// if all rotation components are known (prescribed or fixed)
 				// evaluate net increment from load curve
@@ -1344,15 +1351,11 @@ void FERigidSolverNew::UpdateRigidBodies(vector<double>& Ui, vector<double>& ui)
 				if (lm[3] >= 0) { vUi.x = Ui[lm[3]]; vui.x = ui[lm[3]]; }
 				if (lm[4] >= 0) { vUi.y = Ui[lm[4]]; vui.y = ui[lm[4]]; }
 				if (lm[5] >= 0) { vUi.z = Ui[lm[5]]; vui.z = ui[lm[5]]; }
-				quatd qUi(2 * atan(vUi.norm() / 2), vUi);                    // Cayley transform
-				quatd qui(2 * atan(vui.norm() / 2), vui);                    // Cayley transform
-				qdu = qui*qUi;
+				quatd qUi(2 * atan(vUi.norm() / 2), vUi);                   // Cayley transform
+				quatd qui(2 * atan(vui.norm() / 2), vui);                   // Cayley transform
+				quatd qdu = qui*qUi;                                        // quaternion of net increment
 
 				qdu.MakeUnit();                                         // clean-up roundoff errors
-				vec3d vdu = qdu.GetVector()*(2 * tan(qdu.GetAngle() / 2));  // Cayley transform
-				du[3] = vdu.x; du[4] = vdu.y; du[5] = vdu.z;
-
-				quatd qdu(2 * atan(vdu.norm() / 2), vdu);
 				quatd Q = qdu*RB.m_qp;
 				Q.MakeUnit();
 

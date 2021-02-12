@@ -199,6 +199,8 @@ void FEAnalysis::Reset()
 
 	// Deactivate the step
 	Deactivate();
+
+	if (m_psolver) m_psolver->Reset();
 }
 
 //-----------------------------------------------------------------------------
@@ -518,9 +520,12 @@ int FEAnalysis::SolveTimeStep()
 					for (int i = 0; i < fem.MeshAdaptors(); ++i)
 					{
 						FEMeshAdaptor* meshAdaptor = fem.MeshAdaptor(i);
-						feLog("*mesh adaptor %d (%s):\n", i + 1, meshAdaptor->GetTypeStr());
-						bconv = (meshAdaptor->Apply(niter) && bconv);
-						feLog("\n");
+						if (meshAdaptor->IsActive())
+						{
+							feLog("*mesh adaptor %d (%s):\n", i + 1, meshAdaptor->GetTypeStr());
+							bconv = (meshAdaptor->Apply(niter) && bconv);
+							feLog("\n");
+						}
 					}
 					niter++;
 
@@ -571,6 +576,10 @@ int FEAnalysis::SolveTimeStep()
 	catch (std::exception e)
 	{
 		feLogError("Exception detected: %s\n", e.what());
+		nerr = 2;
+	}
+	catch (...)
+	{
 		nerr = 2;
 	}
 

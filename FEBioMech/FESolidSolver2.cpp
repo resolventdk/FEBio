@@ -715,11 +715,16 @@ void FESolidSolver2::PrepStep()
 	}
 
 	// see if we need to do incompressible augmentations
-	int nmat = fem.Materials();
-	for (int i = 0; i<nmat; ++i)
+	// TODO: Should I do these augmentations in a nlconstraint class instead?
+	int ndom = mesh.Domains();
+	for (int i = 0; i < ndom; ++i)
 	{
-		FEUncoupledMaterial* pmi = dynamic_cast<FEUncoupledMaterial*>(fem.GetMaterial(i));
-		if (pmi && pmi->m_blaugon) m_baugment = true;
+		FEDomain* dom = &mesh.Domain(i);
+		FE3FieldElasticSolidDomain* dom3f = dynamic_cast<FE3FieldElasticSolidDomain*>(dom);
+		if (dom3f && dom3f->DoAugmentations()) m_baugment = true;
+
+		FE3FieldElasticShellDomain* dom3fs = dynamic_cast<FE3FieldElasticShellDomain*>(dom);
+		if (dom3fs && dom3fs->DoAugmentations()) m_baugment = true;
 	}
 
 	// see if we have to do nonlinear constraint augmentations
@@ -1103,7 +1108,7 @@ bool FESolidSolver2::StiffnessMatrix()
 		{
 			FEDomain& dom = mesh.Domain(i);
 			FESolidMaterial* mat = dynamic_cast<FESolidMaterial*>(dom.GetMaterial());
-			if (mat->IsRigid() == false)
+			if (mat && (mat->IsRigid() == false))
 			{
 				FEElasticDomain& edom = dynamic_cast<FEElasticDomain&>(dom);
 				edom.MassMatrix(LS, a);
@@ -1323,7 +1328,7 @@ void FESolidSolver2::ExternalForces(FEGlobalVector& RHS)
 		{
 			FEDomain& dom = mesh.Domain(nd);
 			FESolidMaterial* mat = dynamic_cast<FESolidMaterial*>(dom.GetMaterial());
-			if (mat->IsRigid() == false)
+			if (mat && (mat->IsRigid() == false))
 			{
 				FEElasticDomain& edom = dynamic_cast<FEElasticDomain&>(dom);
 				edom.InertialForces(RHS, F);

@@ -1,40 +1,40 @@
 /*This file is part of the FEBio source code and is licensed under the MIT license
-listed below.
-
-See Copyright-FEBio.txt for details.
-
-Copyright (c) 2020 University of Utah, The Trustees of Columbia University in 
-the City of New York, and others.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.*/
+ listed below.
+ 
+ See Copyright-FEBio.txt for details.
+ 
+ Copyright (c) 2020 University of Utah, The Trustees of Columbia University in
+ the City of New York, and others.
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ 
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.*/
 
 #include "stdafx.h"
 #include "FEBiphasicFSITraction.h"
 #include "FECore/FEModel.h"
 #include "FEFluid.h"
 #include "FEBiphasicFSI.h"
-#include "FEBioBiphasicFSI.h"
+#include "FEBioFSI.h"
 
 //-----------------------------------------------------------------------------
 // Parameter block for pressure loads
 BEGIN_FECORE_CLASS(FEBiphasicFSITraction, FESurfaceLoad)
-    ADD_PARAMETER(m_bshellb , "shell_bottom");
+ADD_PARAMETER(m_bshellb , "shell_bottom");
 END_FECORE_CLASS()
 
 //-----------------------------------------------------------------------------
@@ -42,10 +42,10 @@ END_FECORE_CLASS()
 FEBiphasicFSITraction::FEBiphasicFSITraction(FEModel* pfem) : FESurfaceLoad(pfem), m_dofU(pfem), m_dofSU(pfem), m_dofW(pfem)
 {
     // get the degrees of freedom
-    m_dofU.AddVariable(FEBioBiphasicFSI::GetVariableName(FEBioBiphasicFSI::DISPLACEMENT));
-    m_dofSU.AddVariable(FEBioBiphasicFSI::GetVariableName(FEBioBiphasicFSI::SHELL_DISPLACEMENT));
-    m_dofW.AddVariable(FEBioBiphasicFSI::GetVariableName(FEBioBiphasicFSI::RELATIVE_FLUID_VELOCITY));
-    m_dofEF = pfem->GetDOFIndex(FEBioBiphasicFSI::GetVariableName(FEBioBiphasicFSI::FLUID_DILATATION), 0);
+    m_dofU.AddVariable(FEBioFSI::GetVariableName(FEBioFSI::DISPLACEMENT));
+    m_dofSU.AddVariable(FEBioFSI::GetVariableName(FEBioFSI::SHELL_DISPLACEMENT));
+    m_dofW.AddVariable(FEBioFSI::GetVariableName(FEBioFSI::RELATIVE_FLUID_VELOCITY));
+    m_dofEF = pfem->GetDOFIndex(FEBioFSI::GetVariableName(FEBioFSI::FLUID_DILATATION), 0);
     m_bshellb = false;
     
     m_dof.Clear();
@@ -226,9 +226,9 @@ void FEBiphasicFSITraction::StiffnessMatrix(FELinearSystem& LS, const FETimeInfo
             svJ += pfsi->Fluid()->GetViscous()->Tangent_Strain(mp);
             cv += pfsi->Fluid()->Tangent_RateOfDeformation(mp);
             Ls += ep.m_L;
-            phif += ft.m_phif;
-            phis += ft.m_phis;
-            gradphif += ft.m_gradphif;
+            phif += pfsi->Porosity(mp);
+            phis += pfsi->SolidVolumeFrac(mp);
+            gradphif += pfsi->gradPorosity(mp);
             gradJ += ft.m_gradJ;
             Dw += ft.m_Lw.sym();
             J += ep.m_J;

@@ -497,8 +497,11 @@ public:
 class FEPlotFiberVector : public FEPlotDomainData
 {
 public:
-	FEPlotFiberVector(FEModel* pfem) : FEPlotDomainData(pfem, PLT_VEC3F, FMT_ITEM){}
-	bool Save(FEDomain& dom, FEDataStream& a);
+	FEPlotFiberVector(FEModel* pfem);
+	bool SetFilter(const char* szfilter) override;
+	bool Save(FEDomain& dom, FEDataStream& a) override;
+private:
+	std::string		m_matComp;
 };
 
 //-----------------------------------------------------------------------------
@@ -507,7 +510,10 @@ class FEPlotMaterialAxes : public FEPlotDomainData
 {
 public:
 	FEPlotMaterialAxes(FEModel* pfem) : FEPlotDomainData(pfem, PLT_MAT3F, FMT_ITEM){}
-	bool Save(FEDomain& dom, FEDataStream& a);
+	bool SetFilter(const char* szfilter) override;
+	bool Save(FEDomain& dom, FEDataStream& a) override;
+private:
+	std::string		m_matComp;
 };
 
 //-----------------------------------------------------------------------------
@@ -516,7 +522,10 @@ class FEPlotFiberStretch : public FEPlotDomainData
 {
 public:
 	FEPlotFiberStretch(FEModel* pfem) : FEPlotDomainData(pfem, PLT_FLOAT, FMT_ITEM){}
-	bool Save(FEDomain& dom, FEDataStream& a);
+	bool SetFilter(const char* szfilter) override;
+	bool Save(FEDomain& dom, FEDataStream& a) override;
+private:
+	std::string		m_matComp;
 };
 
 //-----------------------------------------------------------------------------
@@ -525,7 +534,10 @@ class FEPlotDevFiberStretch : public FEPlotDomainData
 {
 public:
 	FEPlotDevFiberStretch(FEModel* pfem) : FEPlotDomainData(pfem, PLT_FLOAT, FMT_ITEM){}
-	bool Save(FEDomain& dom, FEDataStream& a);
+	bool SetFilter(const char* szfilter) override;
+	bool Save(FEDomain& dom, FEDataStream& a) override;
+private:
+	std::string		m_matComp;
 };
 
 //-----------------------------------------------------------------------------
@@ -582,6 +594,15 @@ class FEPlotIntactBondFraction : public FEPlotDomainData
 {
 public:
     FEPlotIntactBondFraction(FEModel* pfem) : FEPlotDomainData(pfem, PLT_FLOAT, FMT_ITEM){}
+    bool Save(FEDomain& m, FEDataStream& a);
+};
+
+//-----------------------------------------------------------------------------
+//! Yielded bond fraction (fatigue)
+class FEPlotYieldedBondFraction : public FEPlotDomainData
+{
+public:
+    FEPlotYieldedBondFraction(FEModel* pfem) : FEPlotDomainData(pfem, PLT_FLOAT, FMT_ITEM){}
     bool Save(FEDomain& m, FEDataStream& a);
 };
 
@@ -885,9 +906,45 @@ public:
 };
 
 //-----------------------------------------------------------------------------
+class FEPlotDiscreteElementElongation : public FEPlotDomainData
+{
+public:
+	FEPlotDiscreteElementElongation(FEModel* fem) : FEPlotDomainData(fem, PLT_FLOAT, FMT_ITEM) {}
+	bool Save(FEDomain& dom, FEDataStream& a);
+};
+
+//-----------------------------------------------------------------------------
+class FEPlotDiscreteElementPercentElongation : public FEPlotDomainData
+{
+public:
+	FEPlotDiscreteElementPercentElongation(FEModel* fem) : FEPlotDomainData(fem, PLT_FLOAT, FMT_ITEM) {}
+	bool Save(FEDomain& dom, FEDataStream& a);
+};
+
+//-----------------------------------------------------------------------------
 class FEPlotDiscreteElementForce : public FEPlotDomainData
 {
 public:
 	FEPlotDiscreteElementForce(FEModel* fem) : FEPlotDomainData(fem, PLT_VEC3F, FMT_ITEM) {}
 	bool Save(FEDomain& dom, FEDataStream& a);
+};
+
+//-----------------------------------------------------------------------------
+class FEPlotDiscreteElementStrainEnergy : public FEPlotDomainData
+{
+public:
+	FEPlotDiscreteElementStrainEnergy(FEModel* fem) : FEPlotDomainData(fem, PLT_FLOAT, FMT_ITEM) {}
+	bool Save(FEDomain& dom, FEDataStream& a);
+};
+
+//-----------------------------------------------------------------------------
+class FEPlotContinuousDamage : public FEPlotDomainData
+{
+public:
+	FEPlotContinuousDamage(FEModel* fem);
+	bool Save(FEDomain& dom, FEDataStream& a) override;
+	bool SetFilter(const char* sz) override;
+private:
+	std::string	m_prop;
+	int			m_propIndex;
 };

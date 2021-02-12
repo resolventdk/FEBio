@@ -86,6 +86,7 @@ bool FEDomainMap::Create(FEElementSet* ps, double val)
 	}
 	else if (m_fmt == FMT_ITEM)
 	{
+		m_maxElemNodes = 1;
 		return resize(NE, val);
 	}
 	else if (m_fmt == FMT_NODE)
@@ -156,6 +157,10 @@ void FEDomainMap::setValue(int n, const vec2d& v)
 	{
 		set<vec2d>(n, v);
 	}
+	else if (m_fmt == FMT_NODE)
+	{
+		set<vec2d>(n, v);
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -167,6 +172,10 @@ void FEDomainMap::setValue(int n, const vec3d& v)
 		for (int i = 0; i < m_maxElemNodes; ++i) set<vec3d>(index + i, v);
 	}
 	else if (m_fmt == FMT_ITEM)
+	{
+		set<vec3d>(n, v);
+	}
+	else if (m_fmt == FMT_NODE)
 	{
 		set<vec3d>(n, v);
 	}
@@ -184,6 +193,10 @@ void FEDomainMap::setValue(int n, const mat3d& v)
 	{
 		set<mat3d>(n, v);
 	}
+	else if (m_fmt == FMT_NODE)
+	{
+		set<mat3d>(n, v);
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -195,6 +208,10 @@ void FEDomainMap::setValue(int n, const mat3ds& v)
 		for (int i = 0; i < m_maxElemNodes; ++i) set<mat3ds>(index + i, v);
 	}
 	else if (m_fmt == FMT_ITEM)
+	{
+		set<mat3ds>(n, v);
+	}
+	else if (m_fmt == FMT_NODE)
 	{
 		set<mat3ds>(n, v);
 	}

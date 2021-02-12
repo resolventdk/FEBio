@@ -35,6 +35,26 @@ SOFTWARE.*/
 //=============================================================================
 
 //-----------------------------------------------------------------------------
+//! Local fluid load support
+//!
+class FEPlotLocalFluidLoadSupport : public FEPlotSurfaceData
+{
+public:
+    FEPlotLocalFluidLoadSupport(FEModel* pfem) : FEPlotSurfaceData(pfem, PLT_FLOAT, FMT_ITEM){}
+    bool Save(FESurface& surf, FEDataStream& a);
+};
+
+//-----------------------------------------------------------------------------
+//! Effective friction coefficient
+//!
+class FEPlotEffectiveFrictionCoeff : public FEPlotSurfaceData
+{
+public:
+    FEPlotEffectiveFrictionCoeff(FEModel* pfem) : FEPlotSurfaceData(pfem, PLT_FLOAT, FMT_ITEM){}
+    bool Save(FESurface& surf, FEDataStream& a);
+};
+
+//-----------------------------------------------------------------------------
 //! Fluid flow rate
 //!
 class FEPlotMixtureFluidFlowRate : public FEPlotSurfaceData
@@ -59,6 +79,15 @@ class FEPlotActualFluidPressure : public FEPlotDomainData
 public:
 	FEPlotActualFluidPressure(FEModel* pfem) : FEPlotDomainData(pfem, PLT_FLOAT, FMT_ITEM){}
 	bool Save(FEDomain& dom, FEDataStream& a);
+};
+
+//-----------------------------------------------------------------------------
+//! Solid stress
+class FEPlotSolidStress : public FEPlotDomainData
+{
+public:
+    FEPlotSolidStress(FEModel* pfem) : FEPlotDomainData(pfem, PLT_MAT3FS, FMT_ITEM){}
+    bool Save(FEDomain& dom, FEDataStream& a);
 };
 
 //-----------------------------------------------------------------------------

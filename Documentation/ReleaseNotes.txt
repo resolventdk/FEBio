@@ -41,6 +41,75 @@ at https://forums.febio.org/.
 
 ===========================================================================
 
+ R E L E A S E   3.2   2/5/2021
+
+===========================================================================
+
+* Fixed issue with the "prestrain correction" plot variable. 
+* Added node-data objective function, which optimizes for nodal data. 
+* Implemented torsional spring. 
+* The data filename is now written to the log file, not the data file.
+* Elastic materials can evaluate stress via "secant_stress" parameter.(This can be useful for debugging new material implementations). Also renamed "secant" to "secant_tangent", which approximates elatic tangent. 
+* Made "value" parameter of initial condition a mapped parameter.
+* Implemented a exp-linear damage fiber model.
+* Fixed Holzapfel-Gasser-Ogden formulation. Deleted unconstrained (compressible) version of this material.
+* Updated the Gasser-Ogden-Holzapfel model to be consistent with ABAQUS formulation.
+* Added "HGO unconstrained" material to model the unconstrained (compressible) Holzapfel-Gasser-Ogden material.  All parameters of "Holzapfel-Gasser-Ogden" are now mapped parameters.
+* Implemented rigid follower force and moment.
+* Fixed miscelleneous issues to improve backward compatibility with 2.5 format.
+* Modified projection logic in "sliding-facet-to-facet" contact. Added support for "search_radius" parameter.
+* An error is now thrown when data type of a map does not match the parameter's data type to which it is assigned.
+* Fixed bug in serialization of linear constraint set.
+* Added log output option for stess eigenvectors.
+* Implemented new "azimuth constraint", which fixes the angle coordinate of the cylindrical coordinates.
+* Introduced plot variables for local fluid load support and effective friction coefficient for biphasic and mixed biphasic contact interfaces.
+* Modified method to evaluate fluid load support in sliding biphasic contact by averaging the local fluid load support over the contact area (instead of dividing the fluid force magnitude by the contact force magnitude).
+* Made scale parameter of "nodal load" a model parameter.
+* Made "phi0" parameter of biphasic, biphasic-solute and triphasic materials a mapped parameter.
+* Improved calculation of rotation angle and extraction of rotation vector from quaternion.
+* Made active stress parameter of active contraction materials a mapped parameter.
+* Made value parameter of FENodalForce a mapped parameter.
+* Fixed issue with "pretrain stretch" plot variable.
+* Fixed crash when a parameter references invalid map.
+* Fixed bugs with element data ordinates in parameter optimization.
+* Added shell domain parameter "shell_normal_nodal"
+* Allow usage of auto-penalty when both contacting surfaces are rigid materials, as long as non-zero Young's modulus is specified for those rigid materials.
+* Added option to set TET4G4 integration rule in MeshDomains.
+* Improved performance of initialization of solid-shell interface elements.
+* Made "ksi" parameter of "fiber-exp-pow-uncoupled" a mapped parameter.
+* Added new "damage fiber exp-linear" material.
+* Fixed output of contact gap and contact pressure for the "sliding node-on-facet".
+* Added strain energy calculation to discrete elements. Added "discrete strain energy" plot variable.
+* Fixed some issues with storing contact plot variables for nodal-integrated contact interfaces.
+* Fixed crash when using "prestrain uncoupled elastic".
+* Fixed crash when nodal load type is not recognized.
+
+===========================================================================
+
+ R E L E A S E   3.1.0   11/2/2020
+
+===========================================================================
+
+* The xplt format 3 is now used, which adds data on rigid bodies and rigid constraints to the plot file. 
+
+* The "fiber" property was added to the "tendon" material. 
+
+* Some backward compatibility issues were addressed: The deprecated "print_level" parameter is ignored and will not cause FEBio to stop. The deprecated "value" parameter of the prescribed BC is now mapped to the "scale" parameter. 
+
+* An issue was fixed with reading mat_axis element data in MeshData section. 
+
+* The "solid stress" plot variable was added for biphasic, multiphasic, and fluid-FSI materials. 
+
+* The bulk-modulus (k) of uncoupled materials is only taken from the top-level material. This is different from previous FEBio versions, where the specification of the bulk modulus depended on the material. For backward compatibility, febio 2.5 files will still processed in a manner that produces the same behavior as in FEBio 2.10. For the 3.0 files, only top-level bulk moduli are allowed. 
+
+* A bug was fixed that caused a crash when a file was using 9-node quadratic surface elements. 
+
+* Support was added to reading mat3d data from ElementData section. 
+
+* Added support for assigning data maps to F0 parameter of const prestrain gradient. 
+
+===========================================================================
+
  R E L E A S E   3.0.2   10/5/2020
 
 ===========================================================================

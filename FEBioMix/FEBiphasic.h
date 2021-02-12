@@ -32,6 +32,7 @@ SOFTWARE.*/
 #include "FESolventSupply.h"
 #include "FEActiveMomentumSupply.h"
 #include <FEBioMech/FEBodyForce.h>
+#include <FECore/FEModelParam.h>
 
 //-----------------------------------------------------------------------------
 //! Biphasic material point class.
@@ -67,6 +68,7 @@ public:
 	double		m_phi0p;	//!< referential solid volume fraction at previous time
 	double		m_phi0hat;	//!< referential solid volume fraction supply at current time
     double      m_Jp;       //!< determinant of solid deformation gradient at previous time
+    mat3ds      m_ss;       //!< solid (elastic or effective) stress
 };
 
 //-----------------------------------------------------------------------------
@@ -122,7 +124,7 @@ public:
 
 public: // material parameters
 	double						m_rhoTw;	//!< true fluid density
-	double						m_phi0;		//!< solid volume fraction in reference configuration
+	FEParamDouble               m_phi0;		//!< solid volume fraction in reference configuration
     double                      m_tau;      //!< characteristic time constant for stabilization
     vector<FEBodyForce*>        m_bf;       //!< body forces acting on this biphasic material
 

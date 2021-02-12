@@ -32,7 +32,6 @@ SOFTWARE.*/
 #include "FECore/FEDataExport.h"
 #include "FECore/FEModel.h"
 #include "FECore/FEMaterial.h"
-#include <FEBioLib/version.h>
 #include <FECore/FESurface.h>
 
 FEBioPlotFile::DICTIONARY_ITEM::DICTIONARY_ITEM()
@@ -162,7 +161,30 @@ private:
 class FEPlotArrayVariable : public FEPlotDomainData
 {
 public:
-	FEPlotArrayVariable(FEModel* fem, const char* szname, int index) : FEPlotDomainData(fem, PLT_FLOAT, FMT_NODE) { strcpy(m_szname, szname); m_index = index; }
+	FEPlotArrayVariable(FEModel* fem, const char* szname, int index) : FEPlotDomainData(fem, PLT_FLOAT, FMT_NODE) 
+	{ 
+		strcpy(m_szname, szname); 
+		m_index = index;
+		if (index == -1)
+		{
+			// get the DOFS
+			FEModel& fem = *GetFEModel();
+			DOFS& dofs = fem.GetDOFS();
+
+			// see if this variable exists
+			int nvar = dofs.GetVariableIndex(m_szname);
+			if (nvar >= 0)
+			{
+				// get the size of the variable
+				int n = dofs.GetVariableSize(nvar);
+				if (n > 0)
+				{
+					SetVarType(PLT_ARRAY);
+					SetArraySize(n);
+				}
+			}
+		}
+	}
 	bool Save(FEDomain& D, FEDataStream& a)
 	{
 		// get the DOFS
@@ -178,28 +200,72 @@ public:
 		if (n == 0) return false;
 
 		// get the start index of the DOFS
-		int ndof = dofs.GetDOF(nvar, m_index);
-		if (ndof < 0) return false;
-
-		// see if this domain contains this dof
-		const FEDofList& domDofs = D.GetDOFList();
-		bool bfound = false;
-		for (int i = 0; i<(int)domDofs.Size(); ++i)
+		if (m_index >= 0)
 		{
-			if (domDofs[i] == ndof)
+			int ndof = dofs.GetDOF(nvar, m_index);
+			if (ndof < 0) return false;
+
+			// see if this domain contains this dof
+			const FEDofList& domDofs = D.GetDOFList();
+			bool bfound = false;
+			for (int i = 0; i < (int)domDofs.Size(); ++i)
 			{
-				bfound = true;
-				break;
+				if (domDofs[i] == ndof)
+				{
+					bfound = true;
+					break;
+				}
+			}
+			if (bfound == false) return false;
+
+			// store the nodal data
+			int NN = D.Nodes();
+			for (int i = 0; i < NN; ++i)
+			{
+				FENode& node = D.Node(i);
+				a << node.get(ndof);
 			}
 		}
-		if (bfound == false) return false;
-
-		// store the nodal data
-		int NN = D.Nodes();
-		for (int i = 0; i<NN; ++i)
+		else
 		{
-			FENode& node = D.Node(i);
-			a << node.get(ndof);
+			const FEDofList& domDofs = D.GetDOFList();
+
+			vector<int> dofList(n, -1);
+			for (int dof_i = 0; dof_i < n; dof_i++)
+			{
+				int ndof = dofs.GetDOF(nvar, dof_i);
+				// see if this domain contains this dof
+				bool bfound = false;
+				for (int i = 0; i < (int)domDofs.Size(); ++i)
+				{
+					if (domDofs[i] == ndof)
+					{
+						bfound = true;
+						dofList[dof_i] = i;
+						break;
+					}
+				}
+			}
+
+			// store the nodal data
+			int NN = D.Nodes();
+			for (int i = 0; i < NN; ++i)
+			{
+				FENode& node = D.Node(i);
+				for (int dof_i = 0; dof_i < n; dof_i++)
+				{
+					int ndof = dofList[dof_i];
+					if (ndof < 0)
+					{
+						a << 0.0;
+					}
+					else
+					{
+						// store the nodal data
+						a << node.get(ndof);
+					}
+				}
+			}
 		}
 
 		return true;
@@ -381,9 +447,14 @@ bool FEBioPlotFile::Dictionary::AddVariable(FEModel* pfem, const char* szname, v
 				int ndofs = dofs.GetVariableSize(sz);
 				if (fltType == 0)
 				{
-					index = dofs.GetIndex(sz, szflt);
+					index = -1;
+					if (szflt)
+					{
+
+						index = dofs.GetIndex(sz, szflt);
+						if ((index < 0) || (index >= ndofs)) return false;
+					}
 				}
-				if ((index < 0) || (index >= ndofs)) return false;
 
 				ps = new FEPlotArrayVariable(pfem, sz, index);
 				return AddDomainVariable(ps, szname, item);
@@ -514,6 +585,7 @@ void FEBioPlotFile::PlotObject::AddData(const char* szname, Var_Type type, FEPlo
 FEBioPlotFile::FEBioPlotFile(FEModel& fem) : m_fem(fem)
 {
 	m_ncompress = 0;
+	m_meshesWritten = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -620,6 +692,13 @@ void FEBioPlotFile::SetCompression(int n)
 }
 
 //-----------------------------------------------------------------------------
+//! set the version string
+void FEBioPlotFile::SetSoftwareString(const std::string& softwareString)
+{
+	m_softwareString = softwareString;
+}
+
+//-----------------------------------------------------------------------------
 bool FEBioPlotFile::IsValid() const
 {
 	return m_ar.IsValid();
@@ -693,9 +772,11 @@ bool FEBioPlotFile::WriteHeader(FEModel& fem)
 	m_ar.WriteChunk(PLT_HDR_COMPRESSION, m_ncompress);
 
 	// software flag
-	char sz[256] = {0};
-	sprintf(sz, "FEBio %d.%d.%d", VERSION, SUBVERSION, SUBSUBVERSION);
-	m_ar.WriteChunk(PLT_HDR_SOFTWARE, (const char*)sz);
+	if (m_softwareString.empty() == false)
+	{
+		const char* sz = m_softwareString.c_str();
+		m_ar.WriteChunk(PLT_HDR_SOFTWARE, sz);
+	}
 
 	return true;
 }
@@ -837,19 +918,22 @@ bool FEBioPlotFile::WriteMeshSection(FEModel& fem)
 			m_ar.EndChunk();
 		}
 
-#ifdef PLOT_FILE_3
 		// additional objects
-		if ((m_Points.size() > 0) || (m_Lines.size() > 0))
+		if (m_meshesWritten == 0)
 		{
-			m_ar.BeginChunk(PLT_OBJECTS_SECTION);
+			if ((m_Points.size() > 0) || (m_Lines.size() > 0))
 			{
-				WriteObjectsSection();
+				m_ar.BeginChunk(PLT_OBJECTS_SECTION);
+				{
+					WriteObjectsSection();
+				}
+				m_ar.EndChunk();
 			}
-			m_ar.EndChunk();
 		}
-#endif
 	}
 	m_ar.EndChunk();
+
+	m_meshesWritten++;
 
 	return true;
 }
@@ -1373,7 +1457,6 @@ bool FEBioPlotFile::Write(FEModel &fem, float ftime)
 		}
 		m_ar.EndChunk();
 
-#ifdef PLOT_FILE_3
 		if (m_Points.size() > 0)
 		{
 			m_ar.BeginChunk(PLT_OBJECTS_STATE);
@@ -1382,7 +1465,6 @@ bool FEBioPlotFile::Write(FEModel &fem, float ftime)
 			}
 			m_ar.EndChunk();
 		}
-#endif
 	}
 	m_ar.EndChunk();
 
@@ -1467,7 +1549,9 @@ void FEBioPlotFile::WriteNodeDataField(FEModel &fem, FEPlotData* pd)
 	FEDataStream a; a.reserve(ndata*N);
 	if (pd->Save(fem.GetMesh(), a))
 	{
+		// pad mismatches
 		assert(a.size() == N*ndata);
+		if (a.size() != N * ndata) a.resize(N*ndata, 0.f);
 		m_ar.WriteData(0, a.data());
 	}
 }
@@ -1554,6 +1638,13 @@ void FEBioPlotFile::WriteDomainDataField(FEModel &fem, FEPlotData* pd)
 	if (item.empty())
 	{
 		for (int i = 0; i<ND; ++i) item.push_back(i);
+	}
+
+	// allow plot data to prepare for save
+	if (pd->PreSave() == false)
+	{
+		assert(false);
+		return;
 	}
 
 	// loop over all domains in the item list

@@ -41,12 +41,15 @@ FEBiphasicSolidDomain::FEBiphasicSolidDomain(FEModel* pfem) : FESolidDomain(pfem
 {
 	EXPORT_DATA(PLT_FLOAT, FMT_NODE, &m_nodePressure, "NPR fluid pressure");
 
-	m_varU = pfem->GetDOFS().GetVariableIndex(FEBioMech::GetVariableName(FEBioMech::DISPLACEMENT)); assert(m_varU >= 0);
-	m_varP = pfem->GetDOFS().GetVariableIndex(FEBioMix::GetVariableName(FEBioMix::FLUID_PRESSURE)); assert(m_varP >= 0);
+	if (pfem)
+	{
+		m_varU = pfem->GetDOFS().GetVariableIndex(FEBioMech::GetVariableName(FEBioMech::DISPLACEMENT)); assert(m_varU >= 0);
+		m_varP = pfem->GetDOFS().GetVariableIndex(FEBioMix::GetVariableName(FEBioMix::FLUID_PRESSURE)); assert(m_varP >= 0);
 
-	m_dofU.AddVariable(FEBioMech::GetVariableName(FEBioMech::DISPLACEMENT));
-	m_dofSU.AddVariable(FEBioMech::GetVariableName(FEBioMech::SHELL_DISPLACEMENT));
-	m_dofR.AddVariable(FEBioMech::GetVariableName(FEBioMech::RIGID_ROTATION));
+		m_dofU.AddVariable(FEBioMech::GetVariableName(FEBioMech::DISPLACEMENT));
+		m_dofSU.AddVariable(FEBioMech::GetVariableName(FEBioMech::SHELL_DISPLACEMENT));
+		m_dofR.AddVariable(FEBioMech::GetVariableName(FEBioMech::RIGID_ROTATION));
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -232,7 +235,7 @@ void FEBiphasicSolidDomain::Reset()
 		FEBiphasicMaterialPoint& pt = *(mp.ExtractData<FEBiphasicMaterialPoint>());
 
 		// initialize referential solid volume fraction
-		pt.m_phi0 = m_pMat->m_phi0;
+		pt.m_phi0 = m_pMat->m_phi0(mp);
 	});
 }
 
@@ -258,7 +261,7 @@ void FEBiphasicSolidDomain::InternalForces(FEGlobalVector& R)
 		int nel_p = el.ShapeFunctions(degree_p);
 
 		// get the element force vector and initialize it to zero
-		int ndof = 4*nel_d;
+		int ndof = 3*nel_d + nel_p;
 		fe.assign(ndof, 0);
 
 		// calculate internal force vector
@@ -972,6 +975,9 @@ void FEBiphasicSolidDomain::UpdateElementStress(int iel)
 			
         // update specialized material points
         m_pMat->UpdateSpecializedMaterialPoints(mp, GetFEModel()->GetTime());
+        
+        // calculate the solid stress at this material point
+        ppt.m_ss = m_pMat->GetElasticMaterial()->Stress(mp);
         
 		// calculate the stress at this material point
 		pt.m_s = m_pMat->Stress(mp);

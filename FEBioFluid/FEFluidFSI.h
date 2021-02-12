@@ -53,6 +53,7 @@ public:
     vec3d       m_w;      //!< fluid flux relative to solid
     vec3d       m_aw;     //!< material time derivative of m_wt
     double      m_Jdot;   //!< time derivative of solid volume ratio
+    mat3ds      m_ss;     //!< solid stress
 };
 
 //-----------------------------------------------------------------------------
@@ -76,7 +77,7 @@ public:
     FEFluid* Fluid() { return m_pFluid; }
     FEElasticMaterial* Solid() { return m_pSolid; }
     
-private: // material properties
+protected: // material properties
     FEElasticMaterial*			m_pSolid;	//!< pointer to elastic solid material
     FEFluid*                    m_pFluid;	//!< pointer to fluid material
     

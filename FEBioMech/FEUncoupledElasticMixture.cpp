@@ -54,27 +54,7 @@ FEMaterialPoint* FEUncoupledElasticMixture::CreateMaterialPointData()
 }
 
 //-----------------------------------------------------------------------------
-bool FEUncoupledElasticMixture::Init()
-{
-	// NOTE: The calculation of K used to be the sum of all solid K's.
-	//       But that doesn't follow the formulation and should be deprecated.
-	//       Ideally, this function should be removed, but for backward compatiblity
-	//       the old algorithm is retained (for now), only if the parent's K = 0. 
-	//       Of course, if the user defined K for both the mixture and its components
-	//       the behavior will be different. 
-	if (m_K == 0.0)
-	{
-		for (int i=0; i < (int)m_pMat.size(); ++i) {
-			m_pMat[i]->Init();
-			m_K += m_pMat[i]->m_K;	// Sum up all the values of the bulk moduli
-		}
-	}
-
-	return FEUncoupledMaterial::Init();
-}
-
-//-----------------------------------------------------------------------------
-void FEUncoupledElasticMixture::AddMaterial(FEUncoupledMaterial* pm) 
+void FEUncoupledElasticMixture::AddMaterial(FEElasticMaterial* pm)
 { 
 	m_pMat.push_back(pm); 
 }
@@ -105,7 +85,11 @@ mat3ds FEUncoupledElasticMixture::DevStress(FEMaterialPoint& mp)
         epi.m_a = ep.m_a;
         epi.m_L = ep.m_L;
 
-		s += epi.m_s = m_pMat[i]->DevStress(*pt.GetPointData(i))*w[i];
+        FEUncoupledMaterial* uMat = dynamic_cast<FEUncoupledMaterial*>(m_pMat[i]);
+        if (uMat)
+            s += epi.m_s = uMat->DevStress(*pt.GetPointData(i))*w[i];
+        else
+            s += epi.m_s = m_pMat[i]->Stress(*pt.GetPointData(i))*w[i];
 	}
     
 	return s;
@@ -137,7 +121,11 @@ tens4ds FEUncoupledElasticMixture::DevTangent(FEMaterialPoint& mp)
         epi.m_a = ep.m_a;
         epi.m_L = ep.m_L;
 
-		c += m_pMat[i]->DevTangent(*pt.GetPointData(i))*w[i];
+        FEUncoupledMaterial* uMat = dynamic_cast<FEUncoupledMaterial*>(m_pMat[i]);
+        if (uMat)
+            c += uMat->DevTangent(*pt.GetPointData(i))*w[i];
+        else
+            c += m_pMat[i]->Tangent(*pt.GetPointData(i))*w[i];
 	}
     
 	return c;
@@ -169,7 +157,11 @@ double FEUncoupledElasticMixture::DevStrainEnergyDensity(FEMaterialPoint& mp)
         epi.m_a = ep.m_a;
         epi.m_L = ep.m_L;
 
-		sed += m_pMat[i]->DevStrainEnergyDensity(*pt.GetPointData(i))*w[i];
+        FEUncoupledMaterial* uMat = dynamic_cast<FEUncoupledMaterial*>(m_pMat[i]);
+        if (uMat)
+            sed += uMat->DevStrainEnergyDensity(*pt.GetPointData(i))*w[i];
+        else
+            sed += m_pMat[i]->StrainEnergyDensity(*pt.GetPointData(i))*w[i];
 	}
     
 	return sed;

@@ -40,10 +40,8 @@ END_FECORE_CLASS();
 //-----------------------------------------------------------------------------
 FEEFDMooneyRivlin::FEEFDMooneyRivlin(FEModel* pfem) : FEUncoupledMaterial(pfem), m_EFD(pfem), m_MR(pfem)
 {
-	// although we don't use K of the child materials, we need to set it to a non-zero value
-	// otherwise FEBio will complain
-	m_MR.m_K = 1.0;
-	m_EFD.m_K = 1.0;
+	m_EFD.SetParent(this);
+	m_MR.SetParent(this);
 }
 
 //-----------------------------------------------------------------------------

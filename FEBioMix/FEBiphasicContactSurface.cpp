@@ -28,7 +28,8 @@ SOFTWARE.*/
 
 #include "stdafx.h"
 #include "FEBiphasicContactSurface.h"
-#include "FECore/FEModel.h"
+#include "FEBiphasic.h"
+#include <FECore/FEModel.h>
 
 //-----------------------------------------------------------------------------
 FEBiphasicContactSurface::FEBiphasicContactSurface(FEModel* pfem) : FEContactSurface(pfem)
@@ -68,10 +69,48 @@ vec3d FEBiphasicContactSurface::GetFluidForce()
 //-----------------------------------------------------------------------------
 double FEBiphasicContactSurface::GetFluidLoadSupport()
 {
-    double W = GetContactForce().norm();
-    double Wp = GetFluidForce().norm();
-    if (W == 0) return 0;
-    return Wp/W;
+    int n, i;
+    
+    // initialize contact force
+    double FLS = 0;
+    double A = 0;
+    
+    // loop over all elements of the surface
+    for (n=0; n<Elements(); ++n)
+    {
+        FESurfaceElement& el = Element(n);
+        // evaluate the fluid force for that element
+        for (i=0; i<el.GaussPoints(); ++i)
+        {
+            FEBiphasicContactPoint *cp = dynamic_cast<FEBiphasicContactPoint*>(el.GetMaterialPoint(i));
+            if (cp) {
+                double w = el.GaussWeights()[i];
+                // get the base vectors
+                vec3d g[2];
+                CoBaseVectors(el, i, g);
+                // normal (magnitude = area)
+                vec3d n = g[0] ^ g[1];
+                double da = n.norm();
+                FLS += cp->m_fls*w*da;
+            }
+        }
+    }
+    
+    A = GetContactArea();
+    
+    return (A > 0) ? FLS/A : 0;
+}
+
+//-----------------------------------------------------------------------------
+void FEBiphasicContactSurface::GetMuEffective(int nface, double& pg)
+{
+    pg = 0;
+}
+
+//-----------------------------------------------------------------------------
+void FEBiphasicContactSurface::GetLocalFLS(int nface, double& pg)
+{
+    pg = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -97,3 +136,38 @@ void FEBiphasicContactSurface::UnpackLM(FEElement& el, vector<int>& lm)
 		if (m_dofP >= 0) lm[3*N+i] = id[m_dofP];
 	}
 }
+//-----------------------------------------------------------------------------
+// Evaluate the local fluid load support projected from the element to the surface Gauss points
+void FEBiphasicContactSurface::GetGPLocalFLS(int nface, double* pt)
+{
+    FESurfaceElement& el = Element(nface);
+    FEElement* e = el.m_elem[0];
+    FESolidElement* se = dynamic_cast<FESolidElement*>(e);
+    if (se) {
+        mat3ds s; s.zero();
+        double p = 0;
+        for (int i=0; i<se->GaussPoints(); ++i) {
+            FEMaterialPoint* pt = se->GetMaterialPoint(i);
+            FEElasticMaterialPoint* ep = pt->ExtractData<FEElasticMaterialPoint>();
+            FEBiphasicMaterialPoint* bp = pt->ExtractData<FEBiphasicMaterialPoint>();
+            if (ep) s += ep->m_s;
+            if (bp) p += bp->m_pa;
+        }
+        s /= se->GaussPoints();
+        p /= se->GaussPoints();
+        // evaluate FLS at integration points of that face
+        for (int i=0; i<el.GaussPoints(); ++i) {
+            double *H = el.H(i);
+            pt[i] = 0;
+            for (int j=0; j<el.Nodes(); ++j) {
+                vec3d n = SurfaceNormal(el, j);
+                double tn = n*(s*n);
+                double fls = (tn != 0) ? -p/tn : 0;
+                pt[i] += fls*H[j];
+            }
+        }
+    }
+    else
+        for (int i=0; i<el.Nodes(); ++i) pt[i] = 0;
+}
+

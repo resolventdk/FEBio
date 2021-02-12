@@ -321,8 +321,9 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;HAVE_GSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BrowseInformation>true</BrowseInformation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -339,6 +340,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BrowseInformation>true</BrowseInformation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -355,6 +357,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BrowseInformation>true</BrowseInformation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -372,10 +375,11 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;FECORE_DLL;FEBIOMECH_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BrowseInformation>true</BrowseInformation>
       <DisableSpecificWarnings>4251</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>fecore.lib;febioplot.lib;zlibstaticd.lib;febioxml.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>fecore.lib;febioplot.lib;feamr.lib;zlibstaticd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
@@ -389,6 +393,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BrowseInformation>true</BrowseInformation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -452,9 +457,10 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;HAVE_GSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <OpenMPSupport>true</OpenMPSupport>
       <WholeProgramOptimization>false</WholeProgramOptimization>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -472,6 +478,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <OpenMPSupport>true</OpenMPSupport>
       <WholeProgramOptimization>false</WholeProgramOptimization>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -490,12 +497,13 @@
       <OpenMPSupport>true</OpenMPSupport>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <DisableSpecificWarnings>4251</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>fecore.lib;febioplot.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>fecore.lib;febioplot.lib;feamr.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -513,10 +521,12 @@
     <ClInclude Include="..\..\FEBioMech\FEActiveFiberStressUC.h" />
     <ClInclude Include="..\..\FEBioMech\FEArrudaBoyce.h" />
     <ClInclude Include="..\..\FEBioMech\FEAugLagLinearConstraint.h" />
+    <ClInclude Include="..\..\FEBioMech\FEAzimuthConstraint.h" />
     <ClInclude Include="..\..\FEBioMech\FEBCPrescribedDeformation.h" />
     <ClInclude Include="..\..\FEBioMech\FEBCRigidDeformation.h" />
     <ClInclude Include="..\..\FEBioMech\FEBioMech.h" />
     <ClInclude Include="..\..\FEBioMech\FEBioMechData.h" />
+    <ClInclude Include="..\..\FEBioMech\FEBioMechModule.h" />
     <ClInclude Include="..\..\FEBioMech\FEBioMechPlot.h" />
     <ClInclude Include="..\..\FEBioMech\febiomech_api.h" />
     <ClInclude Include="..\..\FEBioMech\FEBodyForce.h" />
@@ -529,6 +539,7 @@
     <ClInclude Include="..\..\FEBioMech\FEConstPrestrain.h" />
     <ClInclude Include="..\..\FEBioMech\FEContactInterface.h" />
     <ClInclude Include="..\..\FEBioMech\FEContactSurface.h" />
+    <ClInclude Include="..\..\FEBioMech\FEContinuousElasticDamage.h" />
     <ClInclude Include="..\..\FEBioMech\FEContinuousFiberDistribution.h" />
     <ClInclude Include="..\..\FEBioMech\FEContinuousFiberDistributionUC.h" />
     <ClInclude Include="..\..\FEBioMech\FECoupledMooneyRivlin.h" />
@@ -596,15 +607,16 @@
     <ClInclude Include="..\..\FEBioMech\FEFiberPowLinearUncoupled.h" />
     <ClInclude Include="..\..\FEBioMech\FEFungOrthoCompressible.h" />
     <ClInclude Include="..\..\FEBioMech\FEFungOrthotropic.h" />
-    <ClInclude Include="..\..\FEBioMech\FEGasserOgdenHolzapfel.h" />
-    <ClInclude Include="..\..\FEBioMech\FEGasserOgdenHolzapfelUC.h" />
     <ClInclude Include="..\..\FEBioMech\FEGenericBodyForce.h" />
+    <ClInclude Include="..\..\FEBioMech\FEGenericHyperelastic.h" />
     <ClInclude Include="..\..\FEBioMech\FEGenericHyperelasticUC.h" />
     <ClInclude Include="..\..\FEBioMech\FEGenericRigidJoint.h" />
     <ClInclude Include="..\..\FEBioMech\FEGenericTransIsoHyperelastic.h" />
     <ClInclude Include="..\..\FEBioMech\FEGenericTransIsoHyperelasticUC.h" />
     <ClInclude Include="..\..\FEBioMech\FEGentMaterial.h" />
     <ClInclude Include="..\..\FEBioMech\FEHolmesMow.h" />
+    <ClInclude Include="..\..\FEBioMech\FEHolzapfelGasserOgden.h" />
+    <ClInclude Include="..\..\FEBioMech\FEHolzapfelUnconstrained.h" />
     <ClInclude Include="..\..\FEBioMech\FEHuiskesSupply.h" />
     <ClInclude Include="..\..\FEBioMech\FEIncompNeoHookean.h" />
     <ClInclude Include="..\..\FEBioMech\FEInitialPreStrain.h" />
@@ -675,6 +687,8 @@
     <ClInclude Include="..\..\FEBioMech\FERigidContractileForce.h" />
     <ClInclude Include="..\..\FEBioMech\FERigidCylindricalJoint.h" />
     <ClInclude Include="..\..\FEBioMech\FERigidDamper.h" />
+    <ClInclude Include="..\..\FEBioMech\FERigidFollowerForce.h" />
+    <ClInclude Include="..\..\FEBioMech\FERigidFollowerMoment.h" />
     <ClInclude Include="..\..\FEBioMech\FERigidForce.h" />
     <ClInclude Include="..\..\FEBioMech\FERigidJoint.h" />
     <ClInclude Include="..\..\FEBioMech\FERigidLock.h" />
@@ -715,6 +729,7 @@
     <ClInclude Include="..\..\FEBioMech\FETiedContactSurface.h" />
     <ClInclude Include="..\..\FEBioMech\FETiedElasticInterface.h" />
     <ClInclude Include="..\..\FEBioMech\FETiedInterface.h" />
+    <ClInclude Include="..\..\FEBioMech\FETorsionalSpring.h" />
     <ClInclude Include="..\..\FEBioMech\FETractionLoad.h" />
     <ClInclude Include="..\..\FEBioMech\FETransIsoMooneyRivlin.h" />
     <ClInclude Include="..\..\FEBioMech\FETransIsoVerondaWestmann.h" />
@@ -753,10 +768,12 @@
     <ClCompile Include="..\..\FEBioMech\FEActiveFiberStressUC.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEArrudaBoyce.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEAugLagLinearConstraint.cpp" />
+    <ClCompile Include="..\..\FEBioMech\FEAzimuthConstraint.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEBCPrescribedDeformation.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEBCRigidDeformation.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEBioMech.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEBioMechData.cpp" />
+    <ClCompile Include="..\..\FEBioMech\FEBioMechModule.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEBioMechPlot.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEBodyForce.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEBondRelaxation.cpp" />
@@ -768,6 +785,7 @@
     <ClCompile Include="..\..\FEBioMech\FEConstPrestrain.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEContactInterface.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEContactSurface.cpp" />
+    <ClCompile Include="..\..\FEBioMech\FEContinuousElasticDamage.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEContinuousFiberDistribution.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEContinuousFiberDistributionUC.cpp" />
     <ClCompile Include="..\..\FEBioMech\FECoupledMooneyRivlin.cpp" />
@@ -835,8 +853,6 @@
     <ClCompile Include="..\..\FEBioMech\FEFiberPowLinearUncoupled.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEFungOrthoCompressible.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEFungOrthotropic.cpp" />
-    <ClCompile Include="..\..\FEBioMech\FEGasserOgdenHolzapfel.cpp" />
-    <ClCompile Include="..\..\FEBioMech\FEGasserOgdenHolzapfelUC.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEGenericBodyForce.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEGenericHyperelastic.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEGenericHyperelasticUC.cpp" />
@@ -845,6 +861,8 @@
     <ClCompile Include="..\..\FEBioMech\FEGenericTransIsoHyperelasticUC.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEGentMaterial.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEHolmesMow.cpp" />
+    <ClCompile Include="..\..\FEBioMech\FEHolzapfelGasserOgden.cpp" />
+    <ClCompile Include="..\..\FEBioMech\FEHolzapfelUnconstrained.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEHuiskesSupply.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEIncompNeoHookean.cpp" />
     <ClCompile Include="..\..\FEBioMech\FEInitialPreStrain.cpp" />
@@ -915,6 +933,8 @@
     <ClCompile Include="..\..\FEBioMech\FERigidContractileForce.cpp" />
     <ClCompile Include="..\..\FEBioMech\FERigidCylindricalJoint.cpp" />
     <ClCompile Include="..\..\FEBioMech\FERigidDamper.cpp" />
+    <ClCompile Include="..\..\FEBioMech\FERigidFollowerForce.cpp" />
+    <ClCompile Include="..\..\FEBioMech\FERigidFollowerMoment.cpp" />
     <ClCompile Include="..\..\FEBioMech\FERigidForce.cpp" />
     <ClCompile Include="..\..\FEBioMech\FERigidJoint.cpp" />
     <ClCompile Include="..\..\FEBioMech\FERigidLock.cpp" />
@@ -955,6 +975,7 @@
     <ClCompile Include="..\..\FEBioMech\FETiedContactSurface.cpp" />
     <ClCompile Include="..\..\FEBioMech\FETiedElasticInterface.cpp" />
     <ClCompile Include="..\..\FEBioMech\FETiedInterface.cpp" />
+    <ClCompile Include="..\..\FEBioMech\FETorsionalSpring.cpp" />
     <ClCompile Include="..\..\FEBioMech\FETractionLoad.cpp" />
     <ClCompile Include="..\..\FEBioMech\FETransIsoMooneyRivlin.cpp" />
     <ClCompile Include="..\..\FEBioMech\FETransIsoVerondaWestmann.cpp" />

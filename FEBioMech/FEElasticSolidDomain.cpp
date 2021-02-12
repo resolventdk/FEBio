@@ -49,12 +49,15 @@ FEElasticSolidDomain::FEElasticSolidDomain(FEModel* pfem) : FESolidDomain(pfem),
 	m_update_dynamic = true; // default for backward compatibility
 
 	// TODO: Move this elsewhere since there is no error checking
-	m_dofU.AddVariable(FEBioMech::GetVariableName(FEBioMech::DISPLACEMENT));
-	m_dofR.AddVariable(FEBioMech::GetVariableName(FEBioMech::RIGID_ROTATION));
-	m_dofSU.AddVariable(FEBioMech::GetVariableName(FEBioMech::SHELL_DISPLACEMENT));
-	m_dofV.AddVariable(FEBioMech::GetVariableName(FEBioMech::VELOCTIY));
-	m_dofSV.AddVariable(FEBioMech::GetVariableName(FEBioMech::SHELL_VELOCITY));
-	m_dofSA.AddVariable(FEBioMech::GetVariableName(FEBioMech::SHELL_ACCELERATION));
+	if (pfem)
+	{
+		m_dofU.AddVariable(FEBioMech::GetVariableName(FEBioMech::DISPLACEMENT));
+		m_dofR.AddVariable(FEBioMech::GetVariableName(FEBioMech::RIGID_ROTATION));
+		m_dofSU.AddVariable(FEBioMech::GetVariableName(FEBioMech::SHELL_DISPLACEMENT));
+		m_dofV.AddVariable(FEBioMech::GetVariableName(FEBioMech::VELOCTIY));
+		m_dofSV.AddVariable(FEBioMech::GetVariableName(FEBioMech::SHELL_VELOCITY));
+		m_dofSA.AddVariable(FEBioMech::GetVariableName(FEBioMech::SHELL_ACCELERATION));
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -348,7 +351,7 @@ void FEElasticSolidDomain::ElementMaterialStiffness(FESolidElement &el, matrix &
 
 		// get the 'D' matrix
 //		tens4ds C = m_pMat->Tangent(mp);
-        tens4dmm C = m_pMat->m_secant ? m_pMat->SecantTangent(mp) : m_pMat->Tangent(mp);
+        tens4dmm C = m_pMat->SolidTangent(mp);
 		C.extract(D);
 
 		// we only calculate the upper triangular part
@@ -644,7 +647,8 @@ void FEElasticSolidDomain::UpdateElementStress(int iel, const FETimeInfo& tp)
         m_pMat->UpdateSpecializedMaterialPoints(mp, tp);
         
 		// calculate the stress at this material point
-        pt.m_s = m_pMat->Stress(mp);
+//		pt.m_s = m_pMat->Stress(mp);
+		pt.m_s = m_pMat->SolidStress(mp);
         
         // adjust stress for strain energy conservation
         if (m_alphaf == 0.5) 

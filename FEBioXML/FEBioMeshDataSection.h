@@ -54,10 +54,10 @@ protected:
 	void ParseMaterialAxes  (XMLTag& tag, FEElementSet& set);
 	void ParseMaterialData  (XMLTag& tag, FEElementSet& set, const string& name);
 	void ParseMaterialFiberProperty(XMLTag& tag, FEElementSet& set);
-	void ParseMaterialAxesProperty(XMLTag& tag, FEElementSet& set);
 
 private:
 	void ParseElementData(XMLTag& tag, FEElementSet& set, vector<ELEMENT_DATA>& values, int nvalues);
+	void ParseElementData(XMLTag& tag, FEDomainMap& map);
 	void ParseDataArray(XMLTag& tag, FEDataArray& map, const char* sztag);
 	FEElement* ParseElement(XMLTag& tag, FEElementSet& set);
 

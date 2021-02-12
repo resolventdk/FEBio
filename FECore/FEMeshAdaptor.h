@@ -23,11 +23,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
-
-
-
 #pragma once
-#include "FECoreBase.h"
+#include "FEModelComponent.h"
 #include <functional>
 
 //-----------------------------------------------------------------------------
@@ -35,114 +32,30 @@ SOFTWARE.*/
 class FEModel;
 class FEElement;
 class FEMaterialPoint;
+class FEElementSet;
+class FEMeshAdaptorCriterion;
 
 //-----------------------------------------------------------------------------
 // Base class for all mesh adaptors
-class FECORE_API FEMeshAdaptor : public FECoreBase
+class FECORE_API FEMeshAdaptor : public FEModelComponent
 {
 	FECORE_SUPER_CLASS
 
 public:
 	FEMeshAdaptor(FEModel* fem);
 
+	void SetElementSet(FEElementSet* elemSet);
+	FEElementSet* GetElementSet();
+
 	// The mesh adaptor should return true if the mesh remained unchanged
 	// otherwise, it should return false.
 	// iteration is the iteration number of the mesh adaptation loop
 	virtual bool Apply(int iteration) = 0;
-};
-
-//-----------------------------------------------------------------------------
-// This class is a helper class for use in the mesh adaptors. Its purpose is to select
-// elements based on some criterion. This element list is then usually passed to the 
-// mesh adaptor.
-class FECORE_API FEMeshAdaptorCriterion : public FECoreBase
-{
-	FECORE_SUPER_CLASS
-
-public:
-	FEMeshAdaptorCriterion(FEModel* fem);
-
-	void SetSort(bool b);
-
-	void SetMaxElements(int m);
-
-public:
-
-	// return a list of elements that satisfy the criterion
-	// each item is a pair where 
-	// first = element ID, 
-	// second = suggested element size scale factor (or zero if no suggestion)
-	virtual std::vector<pair<int, double> > GetElementList();
-
-	// This function needs to be overridden in order to select some elements
-	// that satisfy the selection criterion
-	// return true if the element satisfies the criterion, otherwise false
-	// If this function returns true, the elemVal parameter should be set
-	// This is used to sort the element list
-	virtual bool Check(FEElement& el, double& elemVal);
 
 private:
-	bool	m_sortList;		// sort the list
-	int		m_maxelem;		// the max nr of elements to return (or 0 if don't care)
-
-	DECLARE_FECORE_CLASS();
-};
-
-//-----------------------------------------------------------------------------
-class FECORE_API FEMaxVolumeCriterion : public FEMeshAdaptorCriterion
-{
-public:
-	FEMaxVolumeCriterion(FEModel* fem);
-	bool Check(FEElement& el, double& elemVal) override;
-private:
-	double	m_maxVolume;
-
-	DECLARE_FECORE_CLASS();
-};
-
-//-----------------------------------------------------------------------------
-class FECORE_API FEMaxVariableCriterion : public FEMeshAdaptorCriterion
-{
-public:
-	FEMaxVariableCriterion(FEModel* fem);
-	bool Check(FEElement& el, double& elemVal) override;
-
-private:
-	double	m_maxValue;
-	int		m_dof;
-
-	DECLARE_FECORE_CLASS();
-};
-
-//-----------------------------------------------------------------------------
-class FECORE_API FEElementSelectionCriterion : public FEMeshAdaptorCriterion
-{
-public:
-	FEElementSelectionCriterion(FEModel* fem);
-	virtual std::vector<pair<int, double> > GetElementList() override;
-
-private:
-	vector<int>	m_elemList;
-
-	DECLARE_FECORE_CLASS();
-};
-
-//-----------------------------------------------------------------------------
-class FECORE_API FEDomainErrorCriterion : public FEMeshAdaptorCriterion
-{
-public:
-	FEDomainErrorCriterion(FEModel* fem);
-
-	virtual std::vector<pair<int, double> > GetElementList() override;
-
-	// derived classes must implement this function
-	virtual double GetMaterialPointValue(FEMaterialPoint& mp) = 0;
-
-private:
-	double	m_pct;
-
-	DECLARE_FECORE_CLASS();
+	FEElementSet*	m_elemSet;
 };
 
 // helper function for projecting integration point data to nodes
-void projectToNodes(FEMesh& mesh, std::vector<double>& nodeVals, std::function<double (FEMaterialPoint& mp)> f);
+void FECORE_API projectToNodes(FEMesh& mesh, std::vector<double>& nodeVals, std::function<double (FEMaterialPoint& mp)> f);
+void FECORE_API projectToNodes(FEDomain& dom, std::vector<double>& nodeVals, std::function<double(FEMaterialPoint& mp)> f);

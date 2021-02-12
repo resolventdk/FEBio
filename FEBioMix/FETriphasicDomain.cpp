@@ -169,7 +169,7 @@ void FETriphasicDomain::Activate()
 			FESolutesMaterialPoint& ps = *(mp.ExtractData<FESolutesMaterialPoint>());
 
 			// initialize referential solid volume fraction
-			pt.m_phi0 = pmb->m_phi0;
+			pt.m_phi0 = pmb->m_phi0(mp);
 
 			// initialize effective fluid pressure, its gradient, and fluid flux
 			pt.m_p = el.Evaluate(p0, n);
@@ -221,7 +221,7 @@ void FETriphasicDomain::Reset()
 		FESolutesMaterialPoint& ps = *(mp.ExtractData<FESolutesMaterialPoint>());
 			
 		// initialize referential solid volume fraction
-		pt.m_phi0 = pmb->m_phi0;
+		pt.m_phi0 = pmb->m_phi0(mp);
 			
 		// initialize multiphasic solutes
 		ps.m_nsol = nsol;
@@ -1291,6 +1291,9 @@ void FETriphasicDomain::UpdateElementStress(int iel)
 			
         // update specialized material points
         m_pMat->UpdateSpecializedMaterialPoints(mp, GetFEModel()->GetTime());
+        
+        // calculate the solid stress at this material point
+        ppt.m_ss = m_pMat->GetElasticMaterial()->Stress(mp);
         
 		pt.m_s = m_pMat->Stress(mp);
 	}

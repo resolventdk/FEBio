@@ -37,11 +37,6 @@ SOFTWARE.*/
 #include <list>
 using namespace std;
 
-// flag to indicate whether to use the 3.0 plot file
-#if defined(WIN32) && defined(_DEBUG)
-//#define PLOT_FILE_3	1
-#endif
-
 //-----------------------------------------------------------------------------
 //! This class implements the facilities to export FE data in the FEBio
 //! plot file format (version 2).
@@ -50,11 +45,8 @@ class FEBioPlotFile : public PlotFile
 {
 public:
 	// file version
-#ifdef PLOT_FILE_3
 	enum { PLT_VERSION = 0x0030 };
-#else
-	enum { PLT_VERSION = 0x0008 };
-#endif
+
 	// file tags
 	enum { 
 		PLT_ROOT						= 0x01000000,
@@ -303,6 +295,9 @@ public:
 	// Write a mesh section
 	bool WriteMeshSection(FEModel& fem);
 
+	//! set the software variable
+	void SetSoftwareString(const std::string& softwareString);
+
 public:
 	int PointObjects();
 	PointObject* GetPointObject(int i);
@@ -360,6 +355,8 @@ protected:
 	PltArchive	m_ar;	// the data archive
 	FEModel&	m_fem;
 	int			m_ncompress;	// compression level
+	int			m_meshesWritten;	// nr of meshes written
+	string		m_softwareString;	// the software string
 
 	vector<Surface>	m_Surf;
 

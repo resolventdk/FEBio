@@ -34,7 +34,7 @@ SOFTWARE.*/
 //! shell element. Results indicate that using this class produces poorer convergence
 //! with shells than the standard FEElasticShellDomain.  This class is included
 //! only for development purposes.
-class FE3FieldElasticShellDomain : public FEElasticShellDomain
+class FEBIOMECH_API FE3FieldElasticShellDomain : public FEElasticShellDomain
 {
 protected:
     struct ELEM_DATA
@@ -48,10 +48,10 @@ protected:
     
 public:
     //! constructor
-    FE3FieldElasticShellDomain(FEModel* pfem) : FEElasticShellDomain(pfem) {}
+	FE3FieldElasticShellDomain(FEModel* pfem);
     
-    //! \todo Do I really use this?
-    FE3FieldElasticShellDomain& operator = (FE3FieldElasticShellDomain& d) { m_Elem = d.m_Elem; m_pMesh = d.m_pMesh; return (*this); }
+    //! \todo Is this really used?
+	FE3FieldElasticShellDomain& operator = (FE3FieldElasticShellDomain& d);
     
     //! initialize class
 	bool Init() override;
@@ -82,7 +82,17 @@ protected:
     
     //! update the stress of an element
     void UpdateElementStress(int iel);
+
+public:
+	bool DoAugmentations() const;
     
 protected:
     vector<ELEM_DATA>    m_Data;
+
+	bool	m_blaugon;		//!< augmented lagrangian flag
+	double	m_augtol;		//!< augmented lagrangian tolerance
+	int		m_naugmin;		//!< minimum number of augmentations
+	int		m_naugmax;		//!< max number of augmentations
+
+	DECLARE_FECORE_CLASS();
 };

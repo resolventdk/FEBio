@@ -29,29 +29,33 @@ SOFTWARE.*/
 #pragma once
 #include "FEDiscreteElasticMaterial.h"
 #include <FECore/FEFunction1D.h>
+#include "febiomech_api.h"
 
 //-----------------------------------------------------------------------------
 //! material class for discrete elements
-class FESpringMaterial : public FEDiscreteElasticMaterial
+class FEBIOMECH_API FESpringMaterial : public FEDiscreteElasticMaterial
 {
 public:
 	FESpringMaterial(FEModel* pfem) : FEDiscreteElasticMaterial(pfem) {}
 
 	vec3d Force(FEDiscreteMaterialPoint& mp) override;
 	mat3d Stiffness(FEDiscreteMaterialPoint& mp) override;
+	virtual double StrainEnergy(FEDiscreteMaterialPoint& mp) override;
 
 	virtual double force    (double dl) = 0;
 	virtual double stiffness(double dl) = 0;
+	virtual double strainEnergy(double dl) = 0;
 };
 
 //-----------------------------------------------------------------------------
 //! linear spring
-class FELinearSpring : public FESpringMaterial
+class FEBIOMECH_API FELinearSpring : public FESpringMaterial
 {
 public:
 	FELinearSpring(FEModel* pfem) : FESpringMaterial(pfem){}
 	double force    (double dl) override;
 	double stiffness(double dl) override;
+	double strainEnergy(double dl) override;
 
 public:
 	double m_E;	//!< spring constant
@@ -62,12 +66,13 @@ public:
 
 //-----------------------------------------------------------------------------
 //! tension-only linear spring
-class FETensionOnlyLinearSpring : public FESpringMaterial
+class FEBIOMECH_API FETensionOnlyLinearSpring : public FESpringMaterial
 {
 public:
 	FETensionOnlyLinearSpring(FEModel* pfem) : FESpringMaterial(pfem){}
 	double force    (double dl) override;
 	double stiffness(double dl) override;
+	double strainEnergy(double dl) override;
 
 public:
 	double m_E;	//!< spring constant
@@ -78,13 +83,16 @@ public:
 
 //-----------------------------------------------------------------------------
 //! general purpose nonlinear spring
-class FENonLinearSpring : public FESpringMaterial
+class FEBIOMECH_API FENonLinearSpring : public FESpringMaterial
 {
 public:
 	FENonLinearSpring(FEModel* pfem);
+    
+    bool Init() override;
 
 	double force    (double dl) override;
 	double stiffness(double dl) override;
+	double strainEnergy(double dl) override;
 
 public:
 	FEFunction1D*	m_F;	//!< force-displacement function
@@ -94,13 +102,14 @@ public:
 };
 
 //-----------------------------------------------------------------------------
-class FEExperimentalSpring : public FESpringMaterial
+class FEBIOMECH_API FEExperimentalSpring : public FESpringMaterial
 {
 public:
 	FEExperimentalSpring(FEModel* fem);
 
 	double force(double dl) override;
 	double stiffness(double dl) override;
+	double strainEnergy(double dl) override;
 
 public:
 	double	m_E;

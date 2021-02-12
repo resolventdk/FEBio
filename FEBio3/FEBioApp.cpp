@@ -74,6 +74,9 @@ bool FEBioApp::Init(int argc, char* argv[])
 	// Initialize FEBio library
 	febio::InitLibrary();
 
+	// copy some flags to configuration
+	m_config.SetOutputLevel(m_ops.bsilent ? 0 : 1);
+
 	// read the configration file if specified
 	if (m_ops.szcnf[0])
 		if (febio::Configure(m_ops.szcnf, m_config) == false)
@@ -152,7 +155,7 @@ int FEBioApp::RunModel()
 	fem.AddCallback(break_point_cb, CB_ALWAYS, 0);
 
 	// set options that were passed on the command line
-	fem.SetDebugFlag(m_ops.bdebug);
+	fem.SetDebugLevel(m_ops.ndebug);
 	fem.SetDumpLevel(m_ops.dumpLevel);
 
 	// set the output filenames
@@ -223,7 +226,7 @@ bool FEBioApp::ParseCmdLine(int nargs, char* argv[])
 	CMDOPTIONS& ops = m_ops;
 
 	// set default options
-	ops.bdebug = false;
+	ops.ndebug = 0;
 	ops.bsplash = true;
 	ops.bsilent = false;
 	ops.binteractive = true;
@@ -323,7 +326,11 @@ bool FEBioApp::ParseCmdLine(int nargs, char* argv[])
 		}
 		else if (strcmp(sz, "-g") == 0)
 		{
-			ops.bdebug = true;
+			ops.ndebug = 1;
+		}
+		else if (strcmp(sz, "-g2") == 0)
+		{
+			ops.ndebug = 2;
 		}
 		else if (strcmp(sz, "-nosplash") == 0)
 		{
@@ -378,10 +385,13 @@ bool FEBioApp::ParseCmdLine(int nargs, char* argv[])
 				if (fp == 0) fp = stdout;
 			}
 			fprintf(fp, "compiled on " __DATE__ "\n");
+
+			char* szver = febio::getVersionString();
+
 #ifdef _DEBUG
-			fprintf(fp, "FEBio version  = %d.%d.%d (DEBUG)\n", VERSION, SUBVERSION, SUBSUBVERSION);
+			fprintf(fp, "FEBio version  = %s (DEBUG)\n", szver);
 #else
-			fprintf(fp, "FEBio version  = %d.%d.%d\n", VERSION, SUBVERSION, SUBSUBVERSION);
+			fprintf(fp, "FEBio version  = %s\n", szver);
 #endif
 			if (fp != stdout) fclose(fp);
 		}
@@ -401,19 +411,18 @@ bool FEBioApp::ParseCmdLine(int nargs, char* argv[])
 		}
 		else
 		{
-			// we allow FEBio to run without a -i option if no option is specified on the command line
-			// so that we can run an .feb file by right-clicking on it in windows
-			if (nargs == 2)
+			// if no input file is given yet, we'll assume this is the input file
+			if (ops.szfile[0] == 0)
 			{
-				const char* szext = strrchr(argv[1], '.');
+				const char* szext = strrchr(sz, '.');
 				if (szext == 0)
 				{
 					// we assume a default extension of .feb if none is provided
-					sprintf(ops.szfile, "%s.feb", argv[1]);
+					sprintf(ops.szfile, "%s.feb", sz);
 				}
 				else
 				{
-					strcpy(ops.szfile, argv[1]);
+					strcpy(ops.szfile, sz);
 				}
 				ops.binteractive = false;
 			}

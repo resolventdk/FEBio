@@ -220,6 +220,9 @@ public:
 	static void SaveClass(DumpStream& ar, FEMesh* p);
 	static FEMesh* LoadClass(DumpStream& ar, FEMesh* p);
 
+	// create a copy of this mesh
+	void CopyFrom(FEMesh& mesh);
+
 public:
 	//! Calculate the surface representing the element boundaries
 	//! boutside : include all exterior facets
@@ -283,4 +286,25 @@ private:
 
 	//! hide assignment operator
 	void operator =(FEMesh& m) {}
+};
+
+class FECORE_API FEElementIterator
+{
+public:
+	FEElementIterator(FEMesh* mesh, FEElementSet* elemSet = nullptr);
+
+	FEElement& operator *() { return *m_el; }
+
+	bool isValid() { return (m_el != nullptr); }
+
+	void operator++();
+
+	void reset();
+
+private:
+	FEElement*	m_el;
+	FEMesh*	m_mesh;
+	FEElementSet*	m_eset;
+	int	m_index;
+	int	m_dom;
 };

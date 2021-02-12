@@ -45,6 +45,7 @@ SOFTWARE.*/
 #include <FEBioMech/FEMechModel.h>
 #include <FEBioMech/FERigidMaterial.h>
 #include <FECore/FEFacetSet.h>
+#include <FECore/log.h>
 
 //---------------------------------------------------------------------------------
 void FEBioBoundarySection::BuildNodeSetMap()
@@ -694,7 +695,34 @@ void FEBioBoundarySection25::ParseBCPrescribe(XMLTag& tag)
 
 	// Read the parameter list
 	FEParameterList& pl = pdc->GetParameterList();
-	ReadParameterList(tag, pl);
+
+	++tag;
+	do
+	{
+		if (ReadParameter(tag, pl, 0, 0) == false)
+		{
+			if (tag == "value")
+			{
+				feLogWarningEx((&fem), "The value parameter of the prescribed bc is deprecated.");
+
+				// NOTE: This will only work if the scale was set to 1!!
+				const char* sznodedata = tag.AttributeValue("node_data", true);
+				if (sznodedata)
+				{
+					FEParam* pp = pdc->GetParameter("scale"); assert(pp);
+					GetBuilder()->AddMappedParameter(pp, pdc, sznodedata);
+				}
+				else
+				{
+					double v;
+					tag.value(v);
+					pdc->SetScale(v);
+				}
+			}
+			else throw XMLReader::InvalidTag(tag);
+		}
+		++tag;
+	} while (!tag.isend());
 }
 
 //-----------------------------------------------------------------------------
@@ -1102,6 +1130,7 @@ void FEBioBoundarySection::ParseContactSection(XMLTag& tag)
 		++tag;
 		int id, rb, rbp = -1;
 		FERigidNodeSet* prn = 0;
+		FENodeSet* ns = 0;
 		for (int i=0; i<nrn; ++i)
 		{
 			id = atoi(tag.AttributeValue("id"))-1;
@@ -1111,6 +1140,8 @@ void FEBioBoundarySection::ParseContactSection(XMLTag& tag)
 			{
 				prn = fecore_alloc(FERigidNodeSet, &fem);
 				prn->SetRigidMaterialID(rb);
+				ns = new FENodeSet(&fem);
+				prn->SetNodeSet(ns);
 
 				// the default shell bc depends on the shell formulation
 				prn->SetShellBC(feb->m_default_shell == OLD_SHELL ? FERigidNodeSet::HINGED_SHELL : FERigidNodeSet::CLAMPED_SHELL);
@@ -1120,7 +1151,7 @@ void FEBioBoundarySection::ParseContactSection(XMLTag& tag)
 				feb->AddComponent(prn);
 				rbp = rb;
 			}
-			prn->AddNode(id);
+			ns->Add(id);
 
 			++tag;
 		}
@@ -1234,7 +1265,7 @@ void FEBioBoundarySection25::ParseBCRigid(XMLTag& tag)
 	prn->SetShellBC(feb->m_default_shell == OLD_SHELL ? FERigidNodeSet::HINGED_SHELL : FERigidNodeSet::CLAMPED_SHELL);
 
 	prn->SetRigidMaterialID(rb);
-	prn->SetNodeSet(*nodeSet);
+	prn->SetNodeSet(nodeSet);
 
 	fem.AddRigidNodeSet(prn);
 	
@@ -1331,13 +1362,12 @@ void FEBioBoundarySection25::ParseRigidBody(XMLTag& tag)
 			else throw XMLReader::InvalidAttributeValue(tag, "bc", szbc);
 
 			// get the type
-			int ntype = 0;
-			bool bfollow = false;
+			int ntype = FERigidBodyForce::FORCE_LOAD;
 			const char* sztype = tag.AttributeValue("type", true);
 			if (sztype)
 			{
-				if (strcmp(sztype, "ramp") == 0) ntype = 1;
-				else if (strcmp(sztype, "follow") == 0) bfollow = true;
+				if      (strcmp(sztype, "ramp"  ) == 0) ntype = FERigidBodyForce::FORCE_TARGET;
+				else if (strcmp(sztype, "follow") == 0) ntype = FERigidBodyForce::FORCE_FOLLOW;
 				else throw XMLReader::InvalidAttributeValue(tag, "type", sztype);
 			}
 
@@ -1351,10 +1381,9 @@ void FEBioBoundarySection25::ParseRigidBody(XMLTag& tag)
 
 			// create the rigid body force
 			FERigidBodyForce* pFC = static_cast<FERigidBodyForce*>(fecore_new<FEModelLoad>(FEBC_ID, "rigid_force",  &fem));
-			pFC->SetType(ntype);
+			pFC->SetLoadType(ntype);
 			pFC->SetRigidMaterialID(nmat);
 			pFC->SetDOF(bc);
-			pFC->SetFollowFlag(bfollow);
 
 			double val = 0.0;
 			value(tag, val);

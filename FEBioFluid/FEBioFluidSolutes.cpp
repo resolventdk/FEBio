@@ -34,6 +34,8 @@ SOFTWARE.*/
 #include "FEFluidSolutesDomain3D.h"
 #include "FEFluidSolutesDomainFactory.h"
 #include "FESoluteBackflowStabilization.h"
+#include "FEFluidSolutesNaturalFlux.h"
+#include "FEFluidSolutesPressure.h"
 #include "FESoluteConvectiveFlow.h"
 #include "FEFluidSolutesDomainFactory.h"
 #include "FESolutesSolver.h"
@@ -71,7 +73,8 @@ void FEBioFluidSolutes::InitModule()
     
     // define the fsi module
     febio.CreateModule("fluid-solutes");
-    febio.SetModuleDependency("fluid");
+	febio.SetModuleDependency("fluid");
+    febio.SetModuleDependency("multiphasic"); // also pulls in solid, biphasic, solutes
     
 	// monolithic fluid-solutes solver
     REGISTER_FECORE_CLASS(FEFluidSolutesSolver, "fluid-solutes");
@@ -80,6 +83,8 @@ void FEBioFluidSolutes::InitModule()
     
     REGISTER_FECORE_CLASS(FESoluteFlux, "soluteflux");
     REGISTER_FECORE_CLASS(FESoluteBackflowStabilization, "solute backflow stabilization");
+    REGISTER_FECORE_CLASS(FEFluidSolutesNaturalFlux, "solute natural flux");
+    REGISTER_FECORE_CLASS(FEFluidSolutesPressure, "pressure");
     
     REGISTER_FECORE_CLASS(FESoluteConvectiveFlow, "solute convective flow");
 
@@ -92,7 +97,6 @@ void FEBioFluidSolutes::InitModule()
 
 	febio.CreateModule("fluid-solutes2");
 	febio.SetModuleDependency("fluid-solutes");
-	febio.SetModuleDependency("fluid");
 
 	// segragated fluid-solutes solver
 	REGISTER_FECORE_CLASS(FEFluidSolutesSolver2, "fluid-solutes2");

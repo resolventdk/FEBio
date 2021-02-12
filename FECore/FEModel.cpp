@@ -97,6 +97,8 @@ public:
 		m_nStep = -1;
 		m_ftime0 = 0;
 
+		m_nupdates = 0;
+
 		m_bsolved = false;
 
 		m_block_log = false;
@@ -120,6 +122,8 @@ public: // TODO: Find a better place for these parameters
 	double		m_ftime0;			//!< start time of current step
 
 	bool	m_block_log;
+
+	int		m_nupdates;	//!< number of calls to FEModel::Update
 
 public:
 	std::vector<FEMaterial*>				m_MAT;		//!< array of materials
@@ -493,6 +497,13 @@ bool FEModel::Init()
 	// initialize nonlinear constraints
 	if (InitConstraints() == false) return false;
 
+	// initialize mesh adaptors
+	for (int i = 0; i < MeshAdaptors(); ++i)
+	{
+		FEMeshAdaptor* ma = MeshAdaptor(i);
+		if (ma->Init() == false) return false;
+	}
+
 	// evaluate all load parameters
 	// Do this last in case any model components redefined their load curves.
 	if (EvaluateLoadParameters() == false) return false;
@@ -531,8 +542,24 @@ bool FEModel::Init()
 }
 
 //-----------------------------------------------------------------------------
+// get the number of calls to Update()
+int FEModel::UpdateCounter() const
+{
+	return m_imp->m_nupdates;
+}
+
+//-----------------------------------------------------------------------------
+void FEModel::IncrementUpdateCounter()
+{
+	m_imp->m_nupdates++;
+}
+
+//-----------------------------------------------------------------------------
 void FEModel::Update()
 {
+	// update model counter
+	m_imp->m_nupdates++;
+	
 	// update mesh
 	FEMesh& mesh = GetMesh();
 	const FETimeInfo& tp = GetTime();
@@ -1090,6 +1117,45 @@ void FEModel::Activate()
 }
 
 //-----------------------------------------------------------------------------
+// TODO: temporary construction. Need to see if I can just use Activate(). 
+//       This is called after remeshed
+void FEModel::Reactivate()
+{
+	// reactivate BCs
+	for (int i = 0; i < BoundaryConditions(); ++i)
+	{
+		FEBoundaryCondition& bc = *BoundaryCondition(i);
+		if (bc.IsActive()) bc.Activate();
+	}
+
+	// reactivate nodal loads
+	for (int i = 0; i < NodalLoads(); ++i)
+	{
+		FENodalLoad& nl = *NodalLoad(i);
+		if (nl.IsActive()) nl.Activate();
+	}
+
+	// update surface loads 
+	for (int i = 0; i < SurfaceLoads(); ++i)
+	{
+		FESurfaceLoad& sl = *SurfaceLoad(i);
+		FESurface& surf = sl.GetSurface();
+		sl.SetSurface(&surf);
+		if (sl.IsActive()) sl.Activate();
+	}
+
+	// update surface interactions
+	for (int i = 0; i < SurfacePairConstraints(); ++i)
+	{
+		FESurfacePairConstraint& ci = *SurfacePairConstraint(i);
+		if (ci.IsActive()) ci.Activate();
+	}
+
+	// reactivate the linear constraints
+	GetLinearConstraintManager().Activate();
+}
+
+//-----------------------------------------------------------------------------
 //! \todo Do I really need this function. I think calling FEModel::Init achieves the
 //! same effect.
 bool FEModel::Reset()
@@ -1123,6 +1189,7 @@ bool FEModel::Reset()
 
 	// set the start time
 	m_imp->m_timeInfo.currentTime = 0;
+	m_imp->m_timeInfo.timeIncrement = 0;
 	m_imp->m_ftime0 = 0;
 
 	// set first time step

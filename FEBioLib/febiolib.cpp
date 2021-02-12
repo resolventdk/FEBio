@@ -29,14 +29,14 @@ SOFTWARE.*/
 #include "stdafx.h"
 #include "FECore/FECore.h"
 #include "NumCore/NumCore.h"
-#include "FEBioMech/FEBioMech.h"
+#include "FEAMR/FEAMR.h"
+#include "FEBioMech/FEBioMechModule.h"
 #ifndef MECH_ONLY
 #include "FEBioMix/FEBioMix.h"
 #include "FEBioOpt/FEBioOpt.h"
 #include "FEBioFluid/FEBioFluid.h"
 #include "FEBioFluid/FEBioFluidP.h"
 #include <FEBioFluid/FEBioFSI.h>
-#include <FEBioFluid/FEBioBiphasicFSI.h>
 #include <FEBioFluid/FEBioFluidSolutes.h>
 #include <FEBioFluid/FEBioThermoFluid.h>
 #include <FEBioTest/FEBioTest.h>
@@ -61,6 +61,7 @@ void InitLibrary()
 	REGISTER_FECORE_CLASS(FEBioRestart, "restart");
 
 	FECore::InitModule();
+	FEAMR::InitModule();
 	NumCore::InitModule();
 	FEBioMech::InitModule();
 
@@ -70,7 +71,6 @@ void InitLibrary()
 	FEBioFluid::InitModule();
     FEBioFluidP::InitModule();
 	FEBioFSI::InitModule();
-    FEBioBiphasicFSI::InitModule();
     FEBioFluidSolutes::InitModule();
     FEBioThermoFluid::InitModule();
 	FEBioTest::InitModule();

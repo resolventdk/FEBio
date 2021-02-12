@@ -26,7 +26,7 @@ SOFTWARE.*/
 
 #pragma once
 #include <FEBioMech/FEElasticMaterial.h>
-#include "FEFluid.h"
+#include "FEFluidFSI.h"
 #include <FEBioMix/FEHydraulicPermeability.h>
 #include <FEBioMech/FEBodyForce.h>
 
@@ -50,30 +50,22 @@ public:
     
 public:
     // Biphasic FSI material data
-    vec3d       m_w;      //!< fluid flux relative to solid
-    vec3d       m_aw;     //!< material time derivative of m_wt
-    mat3d       m_Lw;     //!< grad of m_wt
-    double      m_Jdot;   //!< time derivative of solid volume ratio
-    double      m_phis;   //!< solid volume fraction
-    double      m_phif;   //!< fluid volume fraction
-    vec3d       m_gradphif;   //!< gradient of fluid volume fraction
-    vec3d       m_gradJ;      //!< gradient of J
-    double      m_phi0;       //!< solid volume fraction in reference configuration
+    mat3d       m_Lw;       //!< grad of m_wt
+    vec3d       m_gradJ;    //!< gradient of J
+    double      m_phi0;     //!< solid volume fraction in reference configuration
+    mat3ds      m_ss;       //!< solid stress
 };
 
 //-----------------------------------------------------------------------------
 //! Base class for FluidFSI materials.
 
-class FEBIOFLUID_API FEBiphasicFSI : public FEMaterial
+class FEBIOFLUID_API FEBiphasicFSI : public FEFluidFSI
 {
 public:
     FEBiphasicFSI(FEModel* pfem);
     
     // returns a pointer to a new material point object
     FEMaterialPoint* CreateMaterialPointData() override;
-    
-    // Get the elastic component (overridden from FEMaterial)
-    FEElasticMaterial* GetElasticMaterial() { return m_pSolid; }
     
     //! performs initialization
     bool Init() override;
@@ -106,20 +98,20 @@ public:
     //! Solid Volume
     double SolidVolumeFrac(FEMaterialPoint& pt);
     
+    //! porosity gradient
+    vec3d gradPorosity(FEMaterialPoint& pt);
+    
     //! solid density
-    double TrueSolidDensity(FEMaterialPoint& mp) { return m_pSolid->Density(mp); }
+    double TrueSolidDensity(FEMaterialPoint& mp) { return Solid()->Density(mp); }
     
     //! true fluid density
-    double TrueFluidDensity(FEMaterialPoint& mp) { return m_pFluid->Density(mp); }
+    double TrueFluidDensity(FEMaterialPoint& mp) { return Fluid()->Density(mp); }
     
     //! solid density
     double SolidDensity(FEMaterialPoint& mp);
     
     //! fluid density
     double FluidDensity(FEMaterialPoint& mp);
-    
-    FEFluid* Fluid() { return m_pFluid; }
-    FEElasticMaterial* Solid() { return m_pSolid; }
     
 public: // material parameters
     double      m_rhoTw; //!< true fluid density
@@ -128,8 +120,6 @@ public: // material parameters
     vector<FEBodyForce*>    m_bf;       //!< body forces acting on this biphasic material
     
 private: // material properties
-    FEElasticMaterial*            m_pSolid;    //!< pointer to elastic solid material
-    FEFluid*                    m_pFluid;    //!< pointer to fluid material
     FEHydraulicPermeability*    m_pPerm;    //!< pointer to permeability material
     
     DECLARE_FECORE_CLASS();

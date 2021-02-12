@@ -36,12 +36,9 @@ SOFTWARE.*/
 #include "FEFluidFSIDomainFactory.h"
 #include "FEBackFlowFSIStabilization.h"
 #include "FETangentialFlowFSIStabilization.h"
+#include "FEBiphasicFSITraction.h"
 #include "FEBiphasicFSI.h"
 #include "FEBiphasicFSIDomain3D.h"
-#include "FEBiphasicFSIDomainFactory.h"
-#include "FEBiphasicFSITraction.h"
-#include "FEBackFlowBiphasicStabilization.h"
-#include "FETangentialFlowBiphasicStabilization.h"
 
 //-----------------------------------------------------------------------------
 const char* FEBioFSI::GetVariableName(FEBioFSI::FSI_VARIABLE var)
@@ -76,6 +73,7 @@ void FEBioFSI::InitModule()
 	// define the fsi module
 	febio.CreateModule("fluid-FSI");
 	febio.SetModuleDependency("fluid");
+	febio.SetModuleDependency("biphasic");	// also pulls in "solid"
 
 	REGISTER_FECORE_CLASS(FEFluidFSISolver, "fluid-FSI");
 
@@ -85,22 +83,15 @@ void FEBioFSI::InitModule()
 
 	REGISTER_FECORE_CLASS(FEFluidFSITraction, "fluid-FSI traction");
     
+    REGISTER_FECORE_CLASS(FEBiphasicFSITraction, "biphasic-FSI traction");
+    
     REGISTER_FECORE_CLASS(FEBackFlowFSIStabilization, "fluid backflow stabilization");
     
     REGISTER_FECORE_CLASS(FETangentialFlowFSIStabilization, "fluid tangential stabilization");
 
-    // register domain
-    febio.RegisterDomain(new FEBiphasicFSIDomainFactory);
-    
     REGISTER_FECORE_CLASS(FEBiphasicFSI, "biphasic-FSI");
     
     REGISTER_FECORE_CLASS(FEBiphasicFSIDomain3D, "biphasic-FSI-3D");
-    
-    REGISTER_FECORE_CLASS(FEBiphasicFSITraction, "biphasic-FSI traction");
 
-    REGISTER_FECORE_CLASS(FEBackFlowBiphasicStabilization, "fluid backflow biphasic stabilization");
-    
-    REGISTER_FECORE_CLASS(FETangentialFlowBiphasicStabilization, "fluid tangential biphasic stabilization");
-    
     febio.SetActiveModule(0);
 }

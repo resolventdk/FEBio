@@ -260,7 +260,7 @@ FEBModel::Part* FEBModel::FindPart(const string& name)
 	return 0;
 }
 
-bool FEBModel::BuildPart(FEModel& fem, Part& part, const FETransform& T)
+bool FEBModel::BuildPart(FEModel& fem, Part& part, bool buildDomains, const FETransform& T)
 {
 	// we'll need the kernel for creating domains
 	FECoreKernel& febio = FECoreKernel::GetInstance();
@@ -332,73 +332,76 @@ bool FEBModel::BuildPart(FEModel& fem, Part& part, const FETransform& T)
 	if (partName.empty() == false) partName += ".";
 
 	// process domains
-	int eid = E0;
-	for (int i = 0; i<NDOM; ++i)
+	if (buildDomains)
 	{
-		const Domain& partDomain = part.GetDomain(i);
-
-		// element count
-		int elems = partDomain.Elements();
-
-		// get the element spect
-		FE_Element_Spec spec = partDomain.ElementSpec();
-
-		// get the material
-		string matName = partDomain.MaterialName();
-		FEMaterial* mat = fem.FindMaterial(matName.c_str());
-		if (mat == 0) return false;
-
-		// create the domain
-		FEDomain* dom = febio.CreateDomain(spec, &mesh, mat);
-		if (dom == 0) return false;
-
-		if (dom->Create(elems, spec) == false)
+		int eid = E0;
+		for (int i = 0; i < NDOM; ++i)
 		{
-			return false;
-		}
+			const Domain& partDomain = part.GetDomain(i);
 
-		dom->SetMatID(mat->GetID() - 1);
+			// element count
+			int elems = partDomain.Elements();
 
-		string domName = partName + partDomain.Name();
-		dom->SetName(domName);
+			// get the element spect
+			FE_Element_Spec spec = partDomain.ElementSpec();
 
-		// process element data
-		for (int j = 0; j<elems; ++j)
-		{
-			const ELEMENT& domElement = partDomain.GetElement(j);
+			// get the material
+			string matName = partDomain.MaterialName();
+			FEMaterial* mat = fem.FindMaterial(matName.c_str());
+			if (mat == 0) return false;
 
-			FEElement& el = dom->ElementRef(j);
-			el.SetID(++eid);
+			// create the domain
+			FEDomain* dom = febio.CreateDomain(spec, &mesh, mat);
+			if (dom == 0) return false;
 
-			int ne = el.Nodes();
-			for (int n = 0; n<ne; ++n) el.m_node[n] = NLT[domElement.node[n] - noff];
-		}
-
-		if (partDomain.m_defaultShellThickness != 0.0)
-		{
-			double h0 = partDomain.m_defaultShellThickness;
-			FEShellDomain* shellDomain = dynamic_cast<FEShellDomain*>(dom);
-			if (shellDomain)
+			if (dom->Create(elems, spec) == false)
 			{
-				int ne = shellDomain->Elements();
-				for (int n = 0; n < ne; ++n)
+				return false;
+			}
+
+			dom->SetMatID(mat->GetID() - 1);
+
+			string domName = partName + partDomain.Name();
+			dom->SetName(domName);
+
+			// process element data
+			for (int j = 0; j < elems; ++j)
+			{
+				const ELEMENT& domElement = partDomain.GetElement(j);
+
+				FEElement& el = dom->ElementRef(j);
+				el.SetID(++eid);
+
+				int ne = el.Nodes();
+				for (int n = 0; n < ne; ++n) el.m_node[n] = NLT[domElement.node[n] - noff];
+			}
+
+			if (partDomain.m_defaultShellThickness != 0.0)
+			{
+				double h0 = partDomain.m_defaultShellThickness;
+				FEShellDomain* shellDomain = dynamic_cast<FEShellDomain*>(dom);
+				if (shellDomain)
 				{
-					FEShellElement& el = shellDomain->Element(n);
-					for (int k = 0; k < el.Nodes(); ++k) el.m_h0[k] = h0;
+					int ne = shellDomain->Elements();
+					for (int n = 0; n < ne; ++n)
+					{
+						FEShellElement& el = shellDomain->Element(n);
+						for (int k = 0; k < el.Nodes(); ++k) el.m_h0[k] = h0;
+					}
+				}
+				else
+				{
+					FEModel* pfem = &fem;
+					feLogWarningEx(pfem, "Shell thickness assigned on non-shell part %s", partDomain.Name().c_str());
 				}
 			}
-			else
-			{
-				FEModel* pfem = &fem;
-				feLogWarningEx(pfem, "Shell thickness assigned on non-shell part %s", partDomain.Name().c_str());
-			}
+
+			// add the domain to the mesh
+			mesh.AddDomain(dom);
+
+			// initialize material point data
+			dom->CreateMaterialPointData();
 		}
-
-		// add the domain to the mesh
-		mesh.AddDomain(dom);
-
-		// initialize material point data
-		dom->CreateMaterialPointData();
 	}
 
 	// create node sets
@@ -464,9 +467,49 @@ bool FEBModel::BuildPart(FEModel& fem, Part& part, const FETransform& T)
 		string name = partName + eset.Name();
 		feset->SetName(name);
 
+		// If a domain exists with the same name, we assume
+		// that this element set refers to the that domain (TODO: should actually check this!)
 		FEDomain* dom = mesh.FindDomain(name);
 		if (dom) feset->Create(dom);
-		else feset->Create(elist);
+		else
+		{
+			// A domain with the same name is not found, but it is possible that this 
+			// set still coincides with a domain, so let's see if we can find it. 
+			// see if all elements belong to the same domain
+			bool oneDomain = true;
+			FEElement* el = mesh.FindElementFromID(elist[0]); assert(el);
+			FEDomain* dom = dynamic_cast<FEDomain*>(el->GetMeshPartition());
+			for (int i = 1; i < elist.size(); ++i)
+			{
+				FEElement* el_i = mesh.FindElementFromID(elist[i]); assert(el);
+				FEDomain* dom_i = dynamic_cast<FEDomain*>(el_i->GetMeshPartition());
+
+				if (dom != dom_i)
+				{
+					oneDomain = false;
+					break;
+				}
+			}
+
+			// assign indices to element set
+			if (oneDomain && (dom->Elements() == elist.size()))
+				feset->Create(dom, elist);
+			else
+			{
+				// Couldn't find a single domain.
+				// But maybe this set encompasses the entire mesh? 
+				if (elist.size() == mesh.Elements())
+				{
+					FEDomainList allDomains;
+					for (int i = 0; i < mesh.Domains(); ++i) allDomains.AddDomain(&mesh.Domain(i));
+					feset->Create(allDomains);
+				}
+				else
+				{
+					feset->Create(elist);
+				}
+			}
+		}
 
 		mesh.AddElementSet(feset);
 	}

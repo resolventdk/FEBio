@@ -28,10 +28,11 @@ SOFTWARE.*/
 
 #pragma once
 #include "FECore/FEModelLoad.h"
+#include "febiomech_api.h"
 
 //-----------------------------------------------------------------------------
 //! an axial force between two rigid bodies
-class FERigidAxialForce : public FEModelLoad
+class FEBIOMECH_API FERigidAxialForce : public FEModelLoad
 {
 public:
 	//! constructor
@@ -65,10 +66,10 @@ public:
 //!       were the force is const, and one where the force is a follower force.
 //!       Perhaps I can derive the const force from FENodalLoad since it applies
 //!       a force directly to the rigid "node".
-class FERigidBodyForce : public FEModelLoad
+class FEBIOMECH_API FERigidBodyForce : public FEModelLoad
 {
 public:
-	enum { RAMP, TARGET };	// values for m_ntype
+	enum { FORCE_LOAD, FORCE_FOLLOW, FORCE_TARGET };	// values for m_ntype
 
 public:
 	FERigidBodyForce(FEModel* pfem);
@@ -92,15 +93,13 @@ public:
 	void StiffnessMatrix(FELinearSystem& LS, const FETimeInfo& tp) override;
 
 public:
-	void SetType(int ntype) { m_ntype = ntype; }
+	void SetRigidMaterialID(int nid);
 
-	void SetRigidMaterialID(int nid) { m_rigidMat = nid; }
+	void SetDOF(int bc);
 
-	void SetDOF(int bc) { m_dof = bc; }
+	void SetLoadType(int loadType);
 
-	void SetFollowFlag(bool b) { m_bfollow = b; }
-
-	void SetForce(double f) { m_force = f; }
+	void SetForce(double f);
 
 private:
 	int		m_rigidMat;		//!< rigid body material id
@@ -109,7 +108,6 @@ private:
 	int		m_ntype;		//!< type of force (0=loadcurve, 1=target)
 	double	m_force;		//!< applied force
 	double	m_trg;			//!< target force for target case
-	bool	m_bfollow;		//!< follower force if true
 	int		m_rid;
 
 	DECLARE_FECORE_CLASS();

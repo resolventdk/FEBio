@@ -36,6 +36,8 @@ class FEBIOMIX_API FEBiphasicContactPoint : public FEContactMaterialPoint
 public:
 	double	m_Lmp;	//!< lagrange multipliers for fluid pressures
 	double	m_pg;	//!< pressure "gap" for biphasic contact
+    double  m_mueff;    //!< effective friction coefficient
+    double  m_fls;      //!< local fluid load support
 };
 
 //-----------------------------------------------------------------------------
@@ -64,6 +66,15 @@ public:
     //! Get the total force exerted by the fluid
     virtual double GetFluidLoadSupport();
     
+    //! Get the effective friction coefficient
+    virtual void GetMuEffective    (int nface, double& pg);
+    
+    //! Get the local fluid load support
+    virtual void GetLocalFLS       (int nface, double& pg);
+    
+    //! Get the local fluid load support projected from the element to the surface Gauss points
+    void GetGPLocalFLS(int nface, double* pt);
+
 protected:
 	int	m_dofP;
 };

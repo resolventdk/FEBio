@@ -538,6 +538,7 @@ FE_Element_Spec FEModelBuilder::ElementSpec(const char* sztype)
 	else if (strcmp(sztype, "penta6" ) == 0) eshape = ET_PENTA6;
 	else if (strcmp(sztype, "penta15") == 0) eshape = ET_PENTA15;
 	else if (strcmp(sztype, "pyra5"  ) == 0) eshape = ET_PYRA5;
+    else if (strcmp(sztype, "pyra13" ) == 0) eshape = ET_PYRA13;
 	else if (strcmp(sztype, "tet4"   ) == 0) eshape = ET_TET4;
 	else if (strcmp(sztype, "tet5"   ) == 0) eshape = ET_TET5;
 	else if (strcmp(sztype, "tet10"  ) == 0) eshape = ET_TET10;
@@ -611,6 +612,7 @@ FE_Element_Spec FEModelBuilder::ElementSpec(const char* sztype)
 	case ET_PENTA6 : etype = FE_PENTA6G6; break;
 	case ET_PENTA15: etype = FE_PENTA15G21; break;
 	case ET_PYRA5  : etype = FE_PYRA5G8; break;
+    case ET_PYRA13 : etype = FE_PYRA13G8; break;
 	case ET_TET4   : etype = m_ntet4; break;
 	case ET_TET5   : etype = FE_TET5G4; break;
 	case ET_TET10  : etype = m_ntet10; break;
@@ -798,9 +800,9 @@ FENodeSet* FEModelBuilder::FindNodeSet(const string& setName)
 	else return mesh.FindNodeSet(setName);
 }
 
-void FEModelBuilder::MapLoadCurveToFunction(FEPointFunction* pf, int lc)
+void FEModelBuilder::MapLoadCurveToFunction(FEPointFunction* pf, int lc, double scale)
 {
-	MapLCToFunction m = { lc, pf };
+	MapLCToFunction m = { lc, scale, pf };
 	m_lc2fnc.push_back(m);
 }
 
@@ -817,6 +819,7 @@ void FEModelBuilder::ApplyLoadcurvesToFunctions()
 		FEPointFunction& f = lc->GetFunction();
 
 		m.pf->CopyFrom(f);
+		if (m.scale != 1.0) m.pf->Scale(m.scale);
 	}
 }
 

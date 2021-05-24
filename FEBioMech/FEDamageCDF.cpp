@@ -31,10 +31,11 @@ SOFTWARE.*/
 #include "FEDamageCriterion.h"
 #include "FEDamageMaterialPoint.h"
 #include <FECore/log.h>
-#define _USE_MATH_DEFINES
+#include <FECore/gamma.h>
 #include <math.h>
-#ifdef HAVE_GSL
-#include "gsl/gsl_sf_gamma.h"
+
+#ifndef M_PI
+#define M_PI 3.141592653589793238462643
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -315,10 +316,8 @@ double FEDamageCDFGamma::cdf(const double X)
     double cdf = 0;
     
     // this CDF only admits positive values
-#ifdef HAVE_GSL
     if (X > 0)
-        cdf = gsl_sf_gamma_inc_P(m_alpha,X/m_mu);
-#endif
+        cdf = gamma_inc_P(m_alpha,X/m_mu);
     
     return cdf;
 }
@@ -329,10 +328,8 @@ double FEDamageCDFGamma::pdf(const double X)
     double pdf = 0;
     
     // this CDF only admits positive values
-#ifdef HAVE_GSL
     if (X > 0)
-        pdf = pow(X/m_mu, m_alpha-1)*exp(-X/m_mu)/m_mu*gsl_sf_gammainv(m_alpha);
-#endif
+        pdf = pow(X/m_mu, m_alpha-1)*exp(-X/m_mu)/m_mu*gammainv(m_alpha);
     
     return pdf;
 }

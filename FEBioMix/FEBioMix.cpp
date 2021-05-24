@@ -200,6 +200,7 @@ void FEBioMix::InitModule()
 	REGISTER_FECORE_CLASS(FELogElemFluidFluxX            , "wx");
 	REGISTER_FECORE_CLASS(FELogElemFluidFluxY            , "wy");
 	REGISTER_FECORE_CLASS(FELogElemFluidFluxZ            , "wz");
+	REGISTER_FECORE_CLASS(FELogElemPorosity              , "porosity");
 
 //======================================================================
 // setup the "solute" module (i.e. biphasic-solute)
@@ -251,6 +252,7 @@ void FEBioMix::InitModule()
 	REGISTER_FECORE_CLASS(FEPlotEffectiveSoluteConcentration     , "effective solute concentration");
 	REGISTER_FECORE_CLASS(FEPlotEffectiveShellSoluteConcentration, "effective shell solute concentration");
 	REGISTER_FECORE_CLASS(FEPlotActualSoluteConcentration        , "solute concentration");
+    REGISTER_FECORE_CLASS(FEPlotPartitionCoefficient             , "partition coefficient");
 	REGISTER_FECORE_CLASS(FEPlotSoluteFlux		                 , "solute flux"                     );
 	REGISTER_FECORE_CLASS(FEPlotOsmolarity                       , "osmolarity");
 	REGISTER_FECORE_CLASS(FEPlotCurrentDensity                   , "current density"     );

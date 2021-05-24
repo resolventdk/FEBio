@@ -37,6 +37,13 @@ SOFTWARE.*/
 //! problems.
 class FEExplicitSolidSolver : public FESolver
 {
+	enum MassLumpingMethod
+	{
+		NO_MASS_LUMPING,	// use consistent mass matrix
+		ROW_SUM_LUMPING,	// use simple row-sum lumping
+		HRZ_LUMPING			// use Hinton-Rock-Zienkiewicz lumping
+	};
+
 public:
 	//! constructor
 	FEExplicitSolidSolver(FEModel* pfem);
@@ -61,11 +68,6 @@ public:
 	void Serialize(DumpStream& ar) override;
 
 public:
-	//! assemble the element residual into the global residual
-//	void AssembleResidual(vector<int>& en, vector<int>& elm, vector<double>& fe, vector<double>& R);
-
-public:
-
 	//! update kinematics
 	void UpdateKinematics(vector<double>& ui);
 
@@ -81,29 +83,28 @@ public:
 
 	void NonLinearConstraintForces(FEGlobalVector& R, const FETimeInfo& tp);
 
-	void InertialForces(FEGlobalVector& R);
-	
 	void ContactForces(FEGlobalVector& R);
 
+private:
+	bool CalculateMassMatrix();
+
 public:
+	int			m_mass_lumping;	//!< specify mass lumping method
 	double		m_dyn_damping;	//!< velocity damping for the explicit solver
 
 public:
 	// equation numbers
 	int		m_nreq;			//!< start of rigid body equations
 
-	vector<double> m_inv_mass;	//!< inverse mass vector for explicit analysis
+	vector<double> m_Mi;	//!< inverse mass vector for explicit analysis
 	vector<double> m_Fn;	//!< concentrated nodal force vector
 	vector<double> m_Fr;	//!< nodal reaction forces
-	vector<double> m_Ui;	//!< Total displacement vector for iteration
 	vector<double> m_Ut;	//!< Total dispalcement vector at time t (incl all previous timesteps)
-	vector<double> m_Fd;	//!< residual correction due to prescribed displacements
 
 	vector<double> m_ui;	//!< displacement increment vector
 
 	vector<double> m_R0;	//!< residual at iteration i-1
 	vector<double> m_R1;	//!< residual at iteration i
-	double *** domain_mass;	//! Pointer to data structure for nodal masses, dynamically allocated during initiation
 
 protected:
 	FEDofList	m_dofU, m_dofV, m_dofSQ, m_dofRQ;

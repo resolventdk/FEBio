@@ -645,9 +645,6 @@
     <ClInclude Include="..\..\FEBioMech\FESolidLinearSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\FEBioMech\FEStressErrorCriterion.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\FEBioMech\FERVEDamageMaterial.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -751,7 +748,16 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\FEBioMech\FEHolzapfelUnconstrained.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\FEBioMech\FEDeformationMapGenerator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\FEBioMech\FESpringRuptureCriterion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\FEAMR\FEFilterAdaptorCriterion.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1367,9 +1373,6 @@
     <ClCompile Include="..\..\FEBioMech\FESolidLinearSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\FEBioMech\FEStressErrorCriterion.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\FEBioMech\FERVEDamageMaterial.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -1473,6 +1476,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\FEBioMech\FEHolzapfelUnconstrained.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\FEBioMech\FEDeformationMapGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\FEBioMech\FESpringRuptureCriterion.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

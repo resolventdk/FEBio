@@ -41,6 +41,8 @@ public:
 	FEDamageElasticFiber(FEModel* fem);
 
 	double Damage(FEMaterialPoint& mp);
+	double beta(FEMaterialPoint& mp);
+	double gamma(FEMaterialPoint& mp);
 
 	//! Strain energy density
 	double FiberStrainEnergyDensity(FEMaterialPoint& mp, const vec3d& a0) override;
@@ -68,6 +70,21 @@ protected:
 	double	m_beta_s;		// saturation parameter
 	double	m_gamma_max;	// saturation parameter
 	double	m_r_s, m_r_inf;
+
+	// D2 parameters
+	double m_D2_D0;
+	double m_D2_beta0;
+	double m_D2_x1;
+	double m_D2_x2;
+	double m_D2_a;
+	double m_D2_b;
+
+	// D3 parameters
+	double	m_D3_xb;
+	double	m_D3_binf;
+	double	m_D3_g0;
+	double	m_D3_ginf;
+	double	m_D3_xg;
 
 	DECLARE_FECORE_CLASS();
 };

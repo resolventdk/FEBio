@@ -44,6 +44,7 @@ SOFTWARE.*/
 #include "FEFluidDomain3D.h"
 #include "FEFluidDomain2D.h"
 
+#include "FEFluidPressureLoad.h"
 #include "FEFluidTractionLoad.h"
 #include "FEFluidMixtureTractionLoad.h"
 #include "FEFluidNormalTraction.h"
@@ -123,6 +124,7 @@ REGISTER_FECORE_CLASS(FEFluidDomain2D, "fluid-2D");
 
 //-----------------------------------------------------------------------------
 // Surface loads
+REGISTER_FECORE_CLASS(FEFluidPressureLoad          , "fluid pressure");
 REGISTER_FECORE_CLASS(FEFluidTractionLoad          , "fluid viscous traction");
 REGISTER_FECORE_CLASS(FEFluidMixtureTractionLoad   , "fluid mixture viscous traction");
 REGISTER_FECORE_CLASS(FEFluidNormalTraction        , "fluid normal traction");
@@ -198,6 +200,7 @@ REGISTER_FECORE_CLASS(FEPlotFluidIsochoricSpecificHeatCapacity, "fluid isochoric
 REGISTER_FECORE_CLASS(FEPlotFluidIsobaricSpecificHeatCapacity , "fluid isobaric specific heat capacity");
 REGISTER_FECORE_CLASS(FEPlotFluidThermalConductivity   , "fluid thermal conductivity"    );
 REGISTER_FECORE_CLASS(FEPlotFSISolidStress             , "solid stress"             );
+REGISTER_FECORE_CLASS(FEPlotFluidShearStressError      , "fluid shear stress error");
 
 //-----------------------------------------------------------------------------
 REGISTER_FECORE_CLASS(FENodeFluidXVel          , "nfvx");
@@ -238,8 +241,7 @@ REGISTER_FECORE_CLASS(FEFSIErosionVolumeRatio, "fsi-volume-erosion");
 
 //-----------------------------------------------------------------------------
 // Derived from FEMeshAdaptorCriterion
-REGISTER_FECORE_CLASS(FEFMaxFluidStressCriterion, "max fluid stress");
-REGISTER_FECORE_CLASS(FEFluidStressErrorCriterion, "fluid stress error");
+REGISTER_FECORE_CLASS(FEFluidStressCriterion     , "fluid shear stress");
 
     febio.SetActiveModule(0);
 }

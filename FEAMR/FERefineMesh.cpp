@@ -47,9 +47,10 @@ SOFTWARE.*/
 
 BEGIN_FECORE_CLASS(FERefineMesh, FEMeshAdaptor)
 	ADD_PARAMETER(m_maxiter, "max_iters");
-	ADD_PARAMETER(m_maxelem, "max_elems");
+	ADD_PARAMETER(m_maxelem, "max_elements");
 	ADD_PARAMETER(m_bmap_data, "map_data");
 	ADD_PARAMETER(m_nnc      , "nnc");
+	ADD_PARAMETER(m_nsdim  , "nsdim");
 	ADD_PARAMETER(m_transferMethod, "transfer_method");
 END_FECORE_CLASS();
 
@@ -59,6 +60,7 @@ FERefineMesh::FERefineMesh(FEModel* fem) : FEMeshAdaptor(fem), m_topo(nullptr)
 	m_bmap_data = false;
 	m_transferMethod = TRANSFER_SHAPE;
 	m_nnc = 8;
+	m_nsdim = 3;
 
 	m_maxiter = -1;
 	m_maxelem = -1;
@@ -82,14 +84,14 @@ bool FERefineMesh::Apply(int iteration)
 	if ((m_maxiter > 0) && (iteration >= m_maxiter))
 	{
 		feLog("Skipping refinement: Max iterations reached.");
-		return true;
+		return false;
 	}
 
 	// see if we reached max elements
 	if ((m_maxelem > 0) && (mesh.Elements() >= m_maxelem))
 	{
 		feLog("Skipping refinement: Element limit reached.\n");
-		return true;
+		return false;
 	}
 
 	// build the mesh-topo
@@ -107,10 +109,10 @@ bool FERefineMesh::Apply(int iteration)
 
 	// refine the mesh (This is done by sub-classes)
 	feLog("-- Starting Mesh refinement.\n");
-	bool bret = RefineMesh();
-	if (bret == false)
+	if (RefineMesh() == false)
 	{
-		throw std::runtime_error("Failed refining mesh.");
+		feLog("Nothing to refine.");
+		return false;
 	}
 	feLog("-- Mesh refinement completed.\n");
 
@@ -130,7 +132,7 @@ bool FERefineMesh::Apply(int iteration)
 	feLog("\n");
 
 	// all done!
-	return false;
+	return true;
 }
 
 void FERefineMesh::ClearMapData()
@@ -154,13 +156,6 @@ bool FERefineMesh::BuildMeshTopo()
 	if (m_topo) { delete m_topo; m_topo = nullptr; }
 	m_topo = new FEMeshTopo;
 	return m_topo->Create(&fem.GetMesh());
-}
-
-void FERefineMesh::UpdateModel()
-{
-	FEModel& fem = *GetFEModel();
-
-	fem.Reactivate();
 }
 
 void FERefineMesh::CopyMesh()
@@ -770,6 +765,8 @@ bool FERefineMesh::BuildDomainMapData(FEDomain& dom, int domIndex)
 		m_domainMapList[domIndex].push_back(nodeMap);
 		feLog("done.\n");
 	}
+    
+    return true;
 }
 
 bool FERefineMesh::BuildUserMapData()
@@ -895,6 +892,7 @@ void FERefineMesh::TransferDomainMapData()
 				{
 					FELeastSquaresInterpolator* MLQ = new FELeastSquaresInterpolator;
 					MLQ->SetNearestNeighborCount(m_nnc);
+					MLQ->SetDimension(m_nsdim);
 					MLQ->SetSourcePoints(srcPoints);
 					MLQ->SetTargetPoints(trgPoints);
 					mapper = MLQ;
@@ -1028,6 +1026,7 @@ void FERefineMesh::TransferUserMapData()
 		{
 			FELeastSquaresInterpolator* MLQ = new FELeastSquaresInterpolator;
 			MLQ->SetNearestNeighborCount(m_nnc);
+			MLQ->SetDimension(m_nsdim);
 			MLQ->SetSourcePoints(srcPoints);
 			MLQ->SetTargetPoints(trgPoints);
 			mapper = MLQ;

@@ -536,9 +536,7 @@ bool FEModel::Init()
 	}
 
 	// do the callback
-	DoCallback(CB_INIT);
-
-	return true;
+	return DoCallback(CB_INIT);
 }
 
 //-----------------------------------------------------------------------------
@@ -1530,7 +1528,7 @@ bool FEModel::DoCallback(unsigned int nevent)
 	{
 		throw;
 	}
-	catch (std::exception)
+	catch (std::exception e)
 	{
 		throw;
 	}

@@ -274,7 +274,7 @@ FEMaterialPoint* FEFluidSolutesMaterialPoint::Copy()
 void FEFluidSolutesMaterialPoint::Serialize(DumpStream& ar)
 {
     FEMaterialPoint::Serialize(ar);
-    ar & m_nsol & m_psi & m_Ie;
+    ar & m_nsol & m_psi & m_Ie & m_pe;
     ar & m_c & m_ca & m_gradc & m_j & m_cdot & m_k & m_dkdJ;
     ar & m_dkdc;
 }
@@ -284,6 +284,7 @@ void FEFluidSolutesMaterialPoint::Init()
 {
     m_nsol = 0;
     m_psi = 0;
+    m_pe = 0;
     m_Ie = vec3d(0,0,0);
     m_c.clear();
     m_ca.clear();
@@ -629,10 +630,11 @@ double FEFluidSolutes::PressureActual(FEMaterialPoint& pt)
     int i;
     
     FEFluidMaterialPoint& fpt = *pt.ExtractData<FEFluidMaterialPoint>();
+    FEFluidSolutesMaterialPoint& spt = *(pt.ExtractData<FEFluidSolutesMaterialPoint>());
     const int nsol = (int)m_pSolute.size();
     
     // effective pressure
-    double p = fpt.m_pf;
+    double p = spt.m_pe;
     
     // actual concentration
     vector<double> c(nsol);

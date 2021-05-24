@@ -63,6 +63,7 @@ public:
     vector<double>      m_cdot;     //!< material time derivative of solute concentration following fluid
     double            m_psi;        //!< electric potential
     vec3d            m_Ie;        //!< current density
+    double           m_pe;           //!< effective fluid pressure
     vector<double>    m_k;        //!< solute partition coefficient
     vector<double>    m_dkdJ;        //!< 1st deriv of m_k with strain (J)
     vector<double>    m_dkdJJ;    //!< 2nd deriv of m_k with strain (J)

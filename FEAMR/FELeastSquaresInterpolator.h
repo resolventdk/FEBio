@@ -48,6 +48,9 @@ public:
 	//! constructor
 	FELeastSquaresInterpolator();
 
+	//! Set dimension (2 or 3)
+	void SetDimension(int d);
+
 	//! Set the number of nearest neighbors to use (should be larger than 4)
 	void SetNearestNeighborCount(int nnc);
 
@@ -63,7 +66,7 @@ public:
 	bool SetTargetPoint(const vec3d& trgPoint) override;
 
 	//! initialize MLQ data
-	bool Init();
+	bool Init() override;
 
 	//! map source data onto target data
 	//! input: sval - values of the source points
@@ -75,6 +78,7 @@ public:
 	vec3d MapVec3d(int inode, function<vec3d(int sourceNode)> src) override;
 
 private:
+	int		m_dim;
 	int		m_nnc;
 	bool	m_checkForMatch;
 	std::vector<vec3d>	m_src;	// source points

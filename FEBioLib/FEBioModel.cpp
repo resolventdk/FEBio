@@ -31,8 +31,9 @@ SOFTWARE.*/
 #include "FEBioPlot/FEBioPlotFile.h"
 #include "FEBioXML/FEBioImport.h"
 #include "FEBioXML/FERestartImport.h"
-#include "FECore/NodeDataRecord.h"
-#include "FECore/ElementDataRecord.h"
+#include <FECore/NodeDataRecord.h>
+#include <FECore/FaceDataRecord.h>
+#include <FECore/ElementDataRecord.h>
 #include <FEBioMech/ObjectDataRecord.h>
 #include <FECore/NLConstraintDataRecord.h>
 #include <FEBioMech/FERigidConnector.h>
@@ -555,6 +556,12 @@ void FEBioModel::Write(unsigned int nwhen)
 					{
 						bout = true;
 					}
+
+					if (nwhen == CB_MAJOR_ITERS)
+					{
+						bout = true;
+						m_lastUpdate = -1;
+					}
 				}
 				else
 				{
@@ -586,7 +593,7 @@ void FEBioModel::Write(unsigned int nwhen)
 					}
 					break;
 					case CB_MAJOR_ITERS  : 
-						if ((nplt == FE_PLOT_MAJOR_ITRS ) && inRange && isStride) bout = true; 
+						if ((nplt == FE_PLOT_MAJOR_ITRS ) && inRange && isStride) bout = true;
 						if ((nplt == FE_PLOT_MUST_POINTS) && (pstep->m_timeController) && (pstep->m_timeController->m_nmust >= 0)) bout = true;
 						if (nplt == FE_PLOT_AUGMENTATIONS) bout = true;
 						break;
@@ -626,11 +633,22 @@ void FEBioModel::Write(unsigned int nwhen)
 					if (m_writeMesh) {
 						FEBioPlotFile* plt = dynamic_cast<FEBioPlotFile*>(m_plot);
 						plt->WriteMeshSection(*this);
-						m_writeMesh = false;
 					}
 
+					// set the status flag
+					int statusFlag = 0;
+					if (m_writeMesh) statusFlag = 1;
+					else if (nwhen != CB_MAJOR_ITERS)
+					{
+						statusFlag = 2;
+					}
+
+					// write the state section
 					double time = GetTime().currentTime;
-					if (m_plot) m_plot->Write(*this, (float)time);
+					if (m_plot) m_plot->Write(*this, (float)time, statusFlag);
+
+					// make sure to reset write mesh flag
+					m_writeMesh = false;
 				}
 			}
 		}
@@ -1344,6 +1362,7 @@ void FEBioModel::SerializeDataStore(DumpStream& ar)
 			switch(ntype)
 			{
 			case FE_DATA_NODE: pd = new NodeDataRecord        (this, 0); break;
+			case FE_DATA_FACE: pd = new FaceDataRecord        (this, 0); break;
 			case FE_DATA_ELEM: pd = new ElementDataRecord     (this, 0); break;
 			case FE_DATA_RB  : pd = new ObjectDataRecord      (this, 0); break;
 			case FE_DATA_NLC : pd = new NLConstraintDataRecord(this, 0); break;

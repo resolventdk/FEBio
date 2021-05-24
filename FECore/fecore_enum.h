@@ -64,6 +64,7 @@ enum FE_Element_Shape {
 	ET_HEX20,
 	ET_HEX27,
 	ET_PYRA5,
+    ET_PYRA13,
 
 	// 2.5D elements
 	ET_QUAD4,
@@ -116,6 +117,7 @@ enum FE_Element_Type {
     FE_PENTA15G8,
     FE_PENTA15G21,
 	FE_PYRA5G8,
+    FE_PYRA13G8,
 
 	// 2.5D surface elements
 	FE_QUAD4G4,
@@ -236,6 +238,7 @@ enum SUPER_CLASS_ID {
 	FEANALYSIS_ID,               	// derived from FEAnalysis
 	FESURFACEPAIRINTERACTION_ID, 	// derived from FESurfacePairInteraction
 	FENODELOGDATA_ID,            	// derived from FENodeLogData
+	FEFACELOGDATA_ID,				// derived from FEFaceLogData
 	FEELEMLOGDATA_ID,            	// derived from FELogElemata
 	FEOBJLOGDATA_ID,            	// derived from FELogObjectData
 	FEBC_ID,						// derived from FEBoundaryCondition (TODO: This does not work yet)
@@ -261,7 +264,8 @@ enum SUPER_CLASS_ID {
 	FENEWTONSTRATEGY_ID,			// derived from FENewtonStrategy
 	FEITEMLIST_ID,                  // derived from FEItemList (NOTE: work in progress!)
 	FETIMECONTROLLER_ID,			// derived from FETimeStepController
-	FEEIGENSOLVER_ID				// derived from EigenSolver
+	FEEIGENSOLVER_ID,				// derived from EigenSolver
+    FESURFACEPAIRINTERACTIONNL_ID   // derived from FESurfacePairInteraction
 };
 
 ///////////////////////////////////////////////////////////////////////////////

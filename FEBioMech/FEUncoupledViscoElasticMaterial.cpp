@@ -182,5 +182,6 @@ double FEUncoupledViscoElasticMaterial::DevStrainEnergyDensity(FEMaterialPoint& 
 	
 	// return the total strain energy density
 	return sedt;*/
-    return 0;
+	throw std::runtime_error("FEViscoElasticMaterial::StrainEnergyDensity NOT implemented!");
+	return 0;
 }

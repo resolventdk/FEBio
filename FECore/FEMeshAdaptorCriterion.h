@@ -26,6 +26,7 @@ SOFTWARE.*/
 #pragma once
 #include "fecore_api.h"
 #include "FECoreBase.h"
+#include <FECore/FEMaterialPoint.h>
 
 class FEElementSet;
 class FEElement;
@@ -34,9 +35,16 @@ class FEElement;
 class FECORE_API FEMeshAdaptorSelection
 {
 public:
+	enum SortFlag
+	{
+		SORT_INCREASING,
+		SORT_DECREASING
+	};
+
+public:
 	struct Item {
-		int		m_elementIndex;
-		double	m_scaleFactor;
+		int		m_elementId;
+		double	m_elemValue;
 	};
 
 public:
@@ -49,43 +57,35 @@ public:
 	bool empty() const { return m_itemList.empty(); }
 	size_t size() const { return m_itemList.size(); }
 	void push_back(int elemIndex, double scale) { m_itemList.push_back(Item{ elemIndex, scale }); }
+	void push_back(const Item& item) { m_itemList.push_back(item); }
+
+public:
+	void Sort(SortFlag sortFlag);
 
 private:
 	std::vector<Item>	m_itemList;
 };
 
 //-----------------------------------------------------------------------------
-// This class is a helper class for use in the mesh adaptors. Its purpose is to select
-// elements based on some criterion. This element list is then usually passed to the 
-// mesh adaptor.
+// This class is a helper class for use in the mesh adaptors. Its purpose is to assign
+// values based on some criterion. This element list is then usually passed to the 
+// mesh adaptor for further processing.
 class FECORE_API FEMeshAdaptorCriterion : public FECoreBase
 {
 	FECORE_SUPER_CLASS
 
 public:
+	// Constructor
 	FEMeshAdaptorCriterion(FEModel* fem);
 
-	void SetSort(bool b);
-
-	void SetMaxElements(int m);
-
-public:
-
-	// return a list of elements that satisfy the criterion
-	// The elements will be selected from the element set. If nullptr is passed
+	// return a list of elements and associated values. 
+	// The elements will be taken from the element set. If nullptr is passed
 	// for the element set, the entire mesh will be processed
 	virtual FEMeshAdaptorSelection GetElementSelection(FEElementSet* elset);
 
-	// This function needs to be overridden in order to select some elements
-	// that satisfy the selection criterion
-	// return true if the element satisfies the criterion, otherwise false
-	// If this function returns true, the elemVal parameter should be set
-	// This is used to sort the element list
-	virtual bool Check(FEElement& el, double& elemVal);
-
-private:
-	bool	m_sortList;		// sort the list
-	int		m_maxelem;		// the max nr of elements to return (or 0 if don't care)
+	// This function needs to be overridden in order to set the element's value.  
+	// Return false if the element cannot be evaluated. Otherwise return true.
+	virtual bool GetMaterialPointValue(FEMaterialPoint& mp, double& value);
 
 	DECLARE_FECORE_CLASS();
 };

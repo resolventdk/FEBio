@@ -32,6 +32,7 @@ SOFTWARE.*/
 #include <FECore/FEModel.h>
 #include <FECore/FEMesh.h>
 #include <FECore/FEDomain.h>
+#include <FECore/FESurface.h>
 #include <FECore/log.h>
 #include <FECore/FELinearConstraintManager.h>
 #include <FECore/FEElementList.h>
@@ -41,6 +42,8 @@ SOFTWARE.*/
 
 BEGIN_FECORE_CLASS(FEErosionAdaptor, FEMeshAdaptor)
 	ADD_PARAMETER(m_maxIters, "max_iters");
+	ADD_PARAMETER(m_maxelem, "max_elems");
+	ADD_PARAMETER(m_nsort, "sort");
 	ADD_PARAMETER(m_bremoveIslands, "remove_islands");
 
 	ADD_PROPERTY(m_criterion, "criterion");
@@ -61,38 +64,47 @@ bool FEErosionAdaptor::Apply(int iteration)
 	if ((m_maxIters >= 0) && (iteration >= m_maxIters))
 	{
 		feLog("\tMax iterations reached.");
-		return true;
+		return false;
 	}
 
-	if (m_criterion == nullptr) return true;
+	// Make sure there is a criterion
+	if (m_criterion == nullptr) return false;
 
+	// get the element selection
 	FEMeshAdaptorSelection selection = m_criterion->GetElementSelection(GetElementSet());
 	if (selection.empty())
 	{
 		feLog("\tNothing to do.\n");
-		return true;
+		return false;
 	}
 
-	vector<int> elemList(mesh.Elements(), 0);
-	for (int i = 0; i < selection.size(); ++i) elemList[selection[i].m_elementIndex] = 1;
-
-	int deactiveElems = 0;
-	int elem = 0;
-	for (int i = 0; i < mesh.Domains(); ++i)
+	// see if we need to sort the data
+	// (This is only necessary if the max_elem parameter is set)
+	if ((m_maxelem > 0) && (m_nsort != 0))
 	{
-		FEDomain& dom = mesh.Domain(i);
-		int NE = dom.Elements();
-		for (int j = 0; j < NE; ++j, elem++)
+		if (m_nsort == 1)
 		{
-			if (elemList[elem] == 1)
-			{
-				FEElement& el = dom.ElementRef(j);
-				assert(el.isActive());
-				el.setInactive();
-				deactiveElems++;
-			}
+			// sort largest-to-smallest
+			selection.Sort(FEMeshAdaptorSelection::SORT_DECREASING);
+		}
+		else if (m_nsort == 2)
+		{
+			// sort smallest-to-largest
+			selection.Sort(FEMeshAdaptorSelection::SORT_INCREASING);
 		}
 	}
+
+	// process the list
+	int nsize = selection.size();
+	if ((m_maxelem > 0) && (nsize > m_maxelem)) nsize = m_maxelem;
+	for (int i = 0; i < nsize; ++i)
+	{
+		FEMeshAdaptorSelection::Item& it = selection[i];
+		FEElement& el = *mesh.FindElementFromID(it.m_elementId);
+		assert(el.isActive());
+		el.setInactive();
+	}
+	feLog("\tDeactivated elements: %d\n", nsize);
 
 	// remove any islands
 	if (m_bremoveIslands) RemoveIslands();
@@ -127,6 +139,24 @@ bool FEErosionAdaptor::Apply(int iteration)
 		}
 	}
 
+	// any facets attached to a eroded element will be eroded as well. 
+	for (int i = 0; i < mesh.Surfaces(); ++i)
+	{
+		int erodedFaces = 0;
+		FESurface& surf = mesh.Surface(i);
+		for (int j = 0; j < surf.Elements(); ++j)
+		{
+			FESurfaceElement& face = surf.Element(j);
+			FEElement* pe = face.m_elem[0]; assert(pe);
+			if (pe && (pe->isActive() == false))
+			{
+				face.setInactive();
+				erodedFaces++;
+			}
+		}
+		if (erodedFaces != 0) surf.Init();
+	}
+
 	// remove any linear constraints of exclude nodes
 	FELinearConstraintManager& LCM = fem.GetLinearConstraintManager();
 	for (int j = 0; j < LCM.LinearConstraints();)
@@ -157,11 +187,10 @@ bool FEErosionAdaptor::Apply(int iteration)
 		if (del) LCM.RemoveLinearConstraint(j); else ++j;
 	}
 
-	// reactivate the linear constraints
-	LCM.Activate();
+	// update model
+	UpdateModel();
 
-	feLog("\tDeactivated elements: %d\n", deactiveElems);
-	return (deactiveElems == 0);
+	return (nsize != 0);
 }
 
 void FEErosionAdaptor::RemoveIslands()

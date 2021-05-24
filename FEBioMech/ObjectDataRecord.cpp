@@ -35,7 +35,7 @@ SOFTWARE.*/
 REGISTER_SUPER_CLASS(FELogObjectData, FEOBJLOGDATA_ID);
 
 //-----------------------------------------------------------------------------
-void ObjectDataRecord::Parse(const char* szexpr)
+void ObjectDataRecord::SetData(const char* szexpr)
 {
 	char szcopy[MAX_STRING] = {0};
 	strcpy(szcopy, szexpr);

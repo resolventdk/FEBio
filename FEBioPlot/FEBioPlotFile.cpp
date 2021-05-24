@@ -1014,6 +1014,7 @@ void FEBioPlotFile::WriteSolidDomain(FESolidDomain& dom)
 		case ET_TET20  : ne = 20; dtype = PLT_ELEM_TET20; break;
         case ET_PENTA15: ne = 15; dtype = PLT_ELEM_PENTA15; break;
 		case ET_PYRA5  : ne =  5; dtype = PLT_ELEM_PYRA5; break;
+        case ET_PYRA13 : ne = 13; dtype = PLT_ELEM_PYRA13; break;
         default:
 			assert(false);
 	}
@@ -1390,7 +1391,7 @@ void FEBioPlotFile::WriteObject(PlotObject* po)
 }
 
 //-----------------------------------------------------------------------------
-bool FEBioPlotFile::Write(FEModel &fem, float ftime)
+bool FEBioPlotFile::Write(FEModel &fem, float ftime, int flag)
 {
 	// store the fem pointer
 	m_pfem = &fem;
@@ -1403,6 +1404,7 @@ bool FEBioPlotFile::Write(FEModel &fem, float ftime)
 		m_ar.BeginChunk(PLT_STATE_HEADER);
 		{
 			m_ar.WriteChunk(PLT_STATE_HDR_TIME, ftime);
+			m_ar.WriteChunk(PLT_STATE_STATUS, flag);
 		}
 		m_ar.EndChunk();
 

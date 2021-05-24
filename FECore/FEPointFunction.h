@@ -50,7 +50,7 @@ public:
 
 public:
 	//! Interpolation functions
-	enum INTFUNC { STEP = 0, LINEAR = 1, SMOOTH = 2, POLYNOMIAL = 3, CSPLINE = 4, AKIMA = 5, STEFFEN = 6 };
+	enum INTFUNC { STEP = 0, LINEAR = 1, SMOOTH = 2, CSPLINE = 3, CPOINTS = 4, APPROX = 5 };
 
 	//! Extend mode
 	enum EXTMODE { CONSTANT, EXTRAPOLATE, REPEAT, REPEAT_OFFSET };
@@ -100,6 +100,11 @@ public:
 
 	// copy from another function
 	void CopyFrom(const FEPointFunction& f);
+
+public: // operations
+
+	// scale all y points by s
+	void Scale(double s);
 
 public: // implement from base class
 

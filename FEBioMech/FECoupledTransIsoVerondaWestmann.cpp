@@ -28,9 +28,8 @@ SOFTWARE.*/
 
 #include "stdafx.h"
 #include "FECoupledTransIsoVerondaWestmann.h"
-#ifdef HAVE_GSL
-#include "gsl/gsl_sf_expint.h"
-#endif
+#include <FECore/log.h>
+#include <FECore/expint_Ei.h>
 
 //-----------------------------------------------------------------------------
 // define the material parameters
@@ -190,7 +189,6 @@ tens4ds FECoupledTransIsoVerondaWestmann::Tangent(FEMaterialPoint& mp)
 //! calculate strain energy density at material point
 double FECoupledTransIsoVerondaWestmann::StrainEnergyDensity(FEMaterialPoint& mp)
 {
-#ifdef HAVE_GSL
 	// get the material point data
 	FEElasticMaterialPoint& pt = *mp.ExtractData<FEElasticMaterialPoint>();
     
@@ -227,7 +225,7 @@ double FECoupledTransIsoVerondaWestmann::StrainEnergyDensity(FEMaterialPoint& mp
 	{
 		if (l < m_flam)
 		{
-            sed += m_c3*(exp(-m_c4)*(gsl_sf_expint_Ei(m_c4*l) - gsl_sf_expint_Ei(m_c4))-log(l));
+            sed += m_c3*(exp(-m_c4)*(expint_Ei(m_c4*l) - expint_Ei(m_c4))-log(l));
 		}
 		else
 		{
@@ -242,7 +240,4 @@ double FECoupledTransIsoVerondaWestmann::StrainEnergyDensity(FEMaterialPoint& mp
     sed += m_K*lnJ*lnJ/2;
     
     return sed;
-#else
-	return 0;
-#endif
 }

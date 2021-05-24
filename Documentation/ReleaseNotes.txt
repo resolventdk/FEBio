@@ -24,7 +24,7 @@
   Columbia University
   http://me.columbia.edu/mbl
 
-  copyright (c) University of Utah 2006-2019 - All rights reserved
+  copyright (c) University of Utah 2006-2021 - All rights reserved
 
 
 ===========================================================================
@@ -38,6 +38,94 @@ FEBio release as well as the more important bug fixes. Please consult
 the FEBio User's Manual for a more detailed description of the new features.
 To report any bugs or request new features, please visit the FEBio forum 
 at https://forums.febio.org/.
+
+===========================================================================
+
+ R E L E A S E   3.4   5/17/2021
+
+===========================================================================
+
+* This version has an updated EULA (EULA version 4). This EULA adds a PRIVACY clause that details how and what information the software (i.e. FEBio Studio) communicates with an external server. 
+* On Windows, this version was built with a newer version of Visual Studio (Visual Studio 2019). As a result, a new SDK has been released and it is highly recommended to rebuild any plugins against this new version. 
+* A bug was fixed for shells that are directly attached to rigid bodies (i.e. shells that share nodes with rigid bodies). 
+* The formulation of strain energy density for fiber-pow-linear-uncoupled material was fixed. In addition, a bug was that which produced discontinuous stress and elasticity at transition from toe region to linear region. The user manual was updated to reflect these changes. 
+* A bug was fixed in CMakeLists that caused an error on Windows if not using MKL.
+* A bug was fixed in the "porosity" element log variable.
+* The description of the max_retries control parameter in the user manual was corrected.
+* The "reaction forces" plot variable now produces the equivalent nodal reaction forces for all nodes, even constrained nodes (fixed, prescribed, rigid). 
+* Chapter on multi-step analysis was added back to user manual and several broken links were fixed. 
+
+===========================================================================
+
+ R E L E A S E   3.3.3   4/20/2021
+
+===========================================================================
+
+* Added "porosity" log variable.
+* Added "fluid pressure" surface load as an alternative to prescribing (or fixing) the fluid dilatation. User manual was updated to include description.
+* Changed default constitutive model for fluid pressure from p = - K ef to p = K (1/(1+ef)-1), which is valid for finite dilatation.
+* Generic math expressions (e.g. as used in the force parameter of nonlinear springs) can now use model parameters in the math expression.
+* Added three new interpolation types for load curves: cubic spline, control points, approximation.
+* Fixed logic in setting debug mode from febio command prompt.
+* Removed dependency on GSL.
+
+===========================================================================
+
+ R E L E A S E   3.3.2   4/6/2021
+
+===========================================================================
+
+* This patch release fixes GSL support in FEBio for all OS. Not all previous builds, including the most recent ones, included support for GSL and consequently could produce incorrect results for certain types of models. For previous builds, materials that require GSL to evaluate the strain energy density, or other quantity, simply returned 0 in the absence of GSL support and did not produce an error message. The complete list of affected materials follows. The list shows the type string of the material, the source code class name, and the function where GSL is needed:   
+ - "relaxation-Fung" (FEBondRelaxationFung): relaxation function
+ - "damage fiber exp-linear" (FEDamageFiberExpLinear): strain energy density function
+ - "coupled trans-iso Mooney-Rivlin" (FECoupledTransIsoMooneyRivlin): strain energy density function
+ - "coupled trans-iso Veronda-Westmann" (FECoupledTransIsoVerondaWestmann): strain energy density function
+ - "CDF gamma" (FEDamageCDFGamma): evaluation of damage cumulative distribution function (cdf) and damage probability density function (pdf). 
+ - "fiber-exp-linear" (FEFiberExpLinear): strain energy density function
+ - "uncoupled fiber-exp-linear" (FEUncoupledFiberExpLinear): strain energy density function
+
+In addition, the following materials returned 0 for the strain energy density, and will now throw an error instead if the model attempts to evaluate the strain-energy function. 
+
+ - "viscoelastic" (FEViscoElasticMaterial)
+ - "uncoupled viscoelastic" (FEUncoupledViscoElasticMaterial)
+
+* A bug was fixed in the log feature that wrote all log data to the same output file. 
+
+===========================================================================
+
+ R E L E A S E   3.3.1   4/2/2021
+
+===========================================================================
+
+* A bug was fixed in the SPR projection algorithm. 
+
+===========================================================================
+
+ R E L E A S E   3.3   3/29/2021
+
+===========================================================================
+
+* The data log mechanism was extended to store surface data to the log file (github issue #10).
+* A bug was fixed in the enforcement of the concentration penalty in tied-multiphasic contact interface.
+* The explicit solver was repaired. It supports row-sum mass lumping (mass_lumping = 1) and Hinton-Rock-Zienkiewicz mass lumping (mass_lumping = 2) for higher order elements.
+* Breakpoint strings should now be case insensitive on Linux and macOS.
+* A check for NANS in the residual vector was added. If a Nan is detected, an error with node and dof info is printed.
+* The performance of the stiffness evaluations of multiphasic models using chemical reactions was improved significantly.
+* Loadcurves are now scaled based on the value of point functions that are defined via a load curve.
+* A check was added for invalid faces in surface definitions (i.e. faces that are not facets of an element).
+* The potfile now stores a status flag for each state. The flag depends on the action that triggered the write.
+* The "contact nodal gap" and "contact pressure" plot variables are fixed for "sliding node-on-facet" contact.
+* The self_contact flag in "sliding node-on-facet" was removed. Self-contact is now supported in all sliding contact algorithms. To use self-contact, just assign the same surface to the primary and secondary contact surface.
+* A bug was fixed regarding prescribed nodal loads in BiphasicSolute and Multiphasic analyses when no solutes are included in the model.
+* Added check for duplicate part names.
+* Implemented the "defgrad" data generator, which generates a deformation gradient from a nodal-displacement field. This can be used, for instance, in prestrain elastic materials to generate the prestrain gradient. 
+* A bug was fixed in "in-situ target stretch" and "prestrain stretch error" related to how the fiber vector was taken into account. 
+* A bug was fixed in formatting log data.
+* Support for a 13-node pyramid element was implemented.
+* Added check for valid material ID in rigid node set.
+* An issue was addressed with unloading of plugins at the end of FEBio's execution that was causing a crash on Windows.
+* A division by zero issue was fixed in the contact auto-penalty feature.
+
 
 ===========================================================================
 

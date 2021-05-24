@@ -37,6 +37,7 @@ SOFTWARE.*/
 #include <FEBioLib/version.h>
 #include "febio_cb.h"
 #include "Interrupt.h"
+#include "ping.h"
 
 FEBioApp* FEBioApp::m_This = nullptr;
 
@@ -90,6 +91,10 @@ bool FEBioApp::Init(int argc, char* argv[])
 	{
 		febio::ImportPlugin(m_ops.szimp);
 	}
+
+	// ping repo server
+	// Removed for the time being, pending further instruction
+	// ping();
 
 	return true;
 }

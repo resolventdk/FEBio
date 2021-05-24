@@ -227,7 +227,7 @@ SOFTWARE.*/
 #include "FEPrescribedNormalDisplacement.h"
 #include "FEMaxStressCriterion.h"
 #include "FEMaxDamageCriterion.h"
-#include "FEStressErrorCriterion.h"
+#include "FESpringRuptureCriterion.h"
 
 #include "FEInitialVelocity.h"
 #include "FENodalForce.h"
@@ -241,6 +241,7 @@ SOFTWARE.*/
 
 #include "FENodeToNodeConstraint.h"
 
+#include "FEDeformationMapGenerator.h"
 
 //-----------------------------------------------------------------------------
 //! Register all the classes of the FEBioMech module with the FEBio framework.
@@ -443,6 +444,7 @@ void FEBioMech::InitModule()
 	REGISTER_FECORE_CLASS(FEDamageCriterionSED, "DC strain energy density");
 	REGISTER_FECORE_CLASS(FEDamageCriterionSSE, "DC specific strain energy");
 	REGISTER_FECORE_CLASS(FEDamageCriterionVMS, "DC von Mises stress");
+    REGISTER_FECORE_CLASS(FEDamageCriterionDrucker, "DC Drucker shear stress");
 	REGISTER_FECORE_CLASS(FEDamageCriterionMSS, "DC max shear stress");
 	REGISTER_FECORE_CLASS(FEDamageCriterionMNS, "DC max normal stress");
 	REGISTER_FECORE_CLASS(FEDamageCriterionMNLS, "DC max normal Lagrange strain");
@@ -673,6 +675,8 @@ void FEBioMech::InitModule()
 	REGISTER_FECORE_CLASS(FEPlotDiscreteElementForce, "discrete element force");
 	REGISTER_FECORE_CLASS(FEPlotDiscreteElementStrainEnergy, "discrete element strain energy");
 	REGISTER_FECORE_CLASS(FEPlotContinuousDamage, "continuous damage");
+	REGISTER_FECORE_CLASS(FEPlotContinuousDamageBeta, "continuous damage beta");
+	REGISTER_FECORE_CLASS(FEPlotContinuousDamageGamma, "continuous damage gamma");
 
 
 	// 2O continuum fields
@@ -699,6 +703,11 @@ void FEBioMech::InitModule()
 	REGISTER_FECORE_CLASS(FENodeForceX, "Rx");
 	REGISTER_FECORE_CLASS(FENodeForceY, "Ry");
 	REGISTER_FECORE_CLASS(FENodeForceZ, "Rz");
+
+	//-----------------------------------------------------------------------------
+	// Derived from FELogFaceData
+	REGISTER_FECORE_CLASS(FELogContactGap     , "contact gap");
+	REGISTER_FECORE_CLASS(FELogContactPressure, "contact pressure");
 
 	//-----------------------------------------------------------------------------
 	// Derived from FELogElemData
@@ -821,7 +830,7 @@ void FEBioMech::InitModule()
 	REGISTER_FECORE_CLASS(FELogRigidBodyKineticEnergy, "KE");
 
 	//-----------------------------------------------------------------------------
-		// Derived from FELogConnectorData
+	// Derived from FELogConnectorData
 	REGISTER_FECORE_CLASS(FELogRigidConnectorForceX, "RCFx");
 	REGISTER_FECORE_CLASS(FELogRigidConnectorForceY, "RCFy");
 	REGISTER_FECORE_CLASS(FELogRigidConnectorForceZ, "RCFz");
@@ -837,9 +846,14 @@ void FEBioMech::InitModule()
 
 	//-----------------------------------------------------------------------------
 	// Derived from FEMeshAdaptorCriterion
-	REGISTER_FECORE_CLASS(FEMaxStressCriterion, "max_stress");
-	REGISTER_FECORE_CLASS(FEMaxDamageCriterion, "max_damage");
-	REGISTER_FECORE_CLASS(FEStressErrorCriterion, "stress error");
+	REGISTER_FECORE_CLASS(FEStressCriterion, "stress");
+	REGISTER_FECORE_CLASS(FEDamageAdaptorCriterion, "damage");
+	REGISTER_FECORE_CLASS(FESpringForceCriterion, "spring force");
+	REGISTER_FECORE_CLASS(FESpringStretchCriterion, "spring stretch");
+
+	//-----------------------------------------------------------------------------
+	// Derived from FEDataGenerator
+	REGISTER_FECORE_CLASS(FEDeformationMapGenerator, "defgrad");
 
 	febio.CreateModule("explicit-solid");
 	febio.SetModuleDependency("solid");

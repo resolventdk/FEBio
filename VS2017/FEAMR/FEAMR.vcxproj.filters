@@ -33,12 +33,6 @@
     <ClCompile Include="..\..\FEAMR\FEMMGRemesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\FEAMR\FEMaxVolumeCriterion.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\FEAMR\FEMaxVariableCriterion.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\FEAMR\FEElementSelectionCriterion.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -63,6 +57,15 @@
     <ClCompile Include="..\..\FEAMR\FEDomainShapeInterpolator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\FEAMR\FETestRefine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\FEAMR\FEFilterAdaptorCriterion.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\FEAMR\FEVariableCriterion.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\FEAMR\FERefineMesh.h">
@@ -84,12 +87,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\FEAMR\FEMMGRemesh.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\FEAMR\FEMaxVolumeCriterion.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\FEAMR\FEMaxVariableCriterion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\FEAMR\FEElementSelectionCriterion.h">
@@ -117,6 +114,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\FEAMR\FEDomainShapeInterpolator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\FEAMR\FETestRefine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\FEAMR\FEVariableCriterion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

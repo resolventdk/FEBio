@@ -52,15 +52,16 @@ public:
 	~FERefineMesh();
 
 	// Apply mesh refinement
-	bool Apply(int iteration);
+	bool Apply(int iteration) override;
 
 protected:
 	// Derived classes need to override this function
+	// The return value should be true if the mesh was refined
+	// or false otherwise. 
 	virtual bool RefineMesh() = 0;
 
 protected:
 	bool BuildMeshTopo();
-	void UpdateModel();
 	void CopyMesh();
 
 	bool BuildMapData();
@@ -83,6 +84,7 @@ protected:
 	int		m_transferMethod;		//!< method for transferring data between meshes
 	bool	m_bmap_data;			//!< map data flag
 	int		m_nnc;					//!< nearest-neighbor-count for MLQ transfer method
+	int		m_nsdim;				//!< nearest-neighbor search dimension (2 or 3)
 
 	FEMesh*	m_meshCopy;		//!< copy of "old" mesh, before refinement
 

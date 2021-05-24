@@ -32,52 +32,30 @@ SOFTWARE.*/
 #include <FECore/FEElement.h>
 #include <FECore/FEModel.h>
 
-BEGIN_FECORE_CLASS(FEMaxDamageCriterion, FEMeshAdaptorCriterion)
-	ADD_PARAMETER(m_maxDamage, FE_RANGE_GREATER(0.0), "max_damage");
+BEGIN_FECORE_CLASS(FEDamageAdaptorCriterion, FEMeshAdaptorCriterion)
 END_FECORE_CLASS();
 
-FEMaxDamageCriterion::FEMaxDamageCriterion(FEModel* fem) : FEMeshAdaptorCriterion(fem)
+FEDamageAdaptorCriterion::FEDamageAdaptorCriterion(FEModel* fem) : FEMeshAdaptorCriterion(fem)
 {
-	m_maxDamage = 0.0;
-
-	// set sort on by default
-	SetSort(true);
 }
 
-bool FEMaxDamageCriterion::Check(FEElement& el, double& elemVal)
+bool FEDamageAdaptorCriterion::GetMaterialPointValue(FEMaterialPoint& mp, double& value)
 {
-	// return true if any of the integration point value exceeds the threshold
-	bool bselect = false;
-	int nint = el.GaussPoints();
-	elemVal = 0;
-	for (int n = 0; n < nint; ++n)
+	FEDamageMaterialPoint* dp = nullptr;
+	// for mixtures, we have to make sure we get the right component
+	if (mp.Components() > 1)
 	{
-		FEDamageMaterialPoint* dp = nullptr;
-		FEMaterialPoint* mp = el.GetMaterialPoint(n);
-		// for mixtures, we have to make sure we get the right component
-		if (mp->Components() > 1)
+		for (int i = 0; i < mp.Components(); ++i)
 		{
-			for (int i = 0; i < mp->Components(); ++i)
-			{
-				FEMaterialPoint* mpi = mp->GetPointData(i);
-				dp = mpi->ExtractData<FEDamageMaterialPoint>();
-				if (dp) break;
-			}
-		}
-		else dp = mp->ExtractData<FEDamageMaterialPoint>();
-
-		// evaluate the damage at this point
-		if (dp)
-		{
-			elemVal = dp->m_D;
-
-			if (elemVal >= m_maxDamage)
-			{
-				bselect = true;
-				break;
-			}
+			FEMaterialPoint* mpi = mp.GetPointData(i);
+			dp = mpi->ExtractData<FEDamageMaterialPoint>();
+			if (dp) break;
 		}
 	}
+	else dp = mp.ExtractData<FEDamageMaterialPoint>();
+	if (dp == nullptr) return false;
 
-	return bselect;
+	// evaluate the damage at this point
+	value = dp->m_D;
+	return true;
 }

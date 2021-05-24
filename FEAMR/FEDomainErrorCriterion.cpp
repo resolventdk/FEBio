@@ -30,15 +30,35 @@ SOFTWARE.*/
 #include <FECore/FEMeshAdaptor.h> // for projectToNodes
 
 BEGIN_FECORE_CLASS(FEDomainErrorCriterion, FEMeshAdaptorCriterion)
-	ADD_PARAMETER(m_pct, "error");
+	ADD_PARAMETER(m_error, "error");
+	ADD_PROPERTY(m_data, "data");
 END_FECORE_CLASS();
 
 FEDomainErrorCriterion::FEDomainErrorCriterion(FEModel* fem) : FEMeshAdaptorCriterion(fem)
 {
-	m_pct = 0.0;
+	m_error = 0.0;
+	m_data = nullptr;
+}
 
-	// set sort on by default
-	SetSort(true);
+double MinEdgeLengthSqr(FEMesh* pm, FEElement& el)
+{
+	double h2 = 1e99;
+	int ne = el.Nodes();
+	for (int i = 0; i < ne; ++i)
+	{
+		for (int j = 0; j < ne; ++j)
+		{
+			if (i != j)
+			{
+				vec3d a = pm->Node(el.m_node[i]).m_r0;
+				vec3d b = pm->Node(el.m_node[j]).m_r0;
+
+				double L2 = (a - b).norm2();
+				if (L2 < h2) h2 = L2;
+			}
+		}
+	}
+	return h2;
 }
 
 FEMeshAdaptorSelection FEDomainErrorCriterion::GetElementSelection(FEElementSet* elemSet)
@@ -50,8 +70,10 @@ FEMeshAdaptorSelection FEDomainErrorCriterion::GetElementSelection(FEElementSet*
 
 	// calculate the recovered nodal stresses
 	vector<double> sn(NN);
-	projectToNodes(mesh, sn, [this](FEMaterialPoint& mp) {
-		return GetMaterialPointValue(mp);
+	projectToNodes(mesh, sn, [=](FEMaterialPoint& mp) {
+		double val = 0.0;
+		m_data->GetMaterialPointValue(mp, val);
+		return val;
 	});
 
 	// the element list of elements that need to be refined
@@ -66,7 +88,8 @@ FEMeshAdaptorSelection FEDomainErrorCriterion::GetElementSelection(FEElementSet*
 		int ni = el.GaussPoints();
 		for (int j = 0; j < ni; ++j)
 		{
-			double sj = GetMaterialPointValue(*el.GetMaterialPoint(j));
+			double sj = 0.0;
+			m_data->GetMaterialPointValue(*el.GetMaterialPoint(j), sj);
 			if (sj < smin) smin = sj;
 			if (sj > smax) smax = sj;
 		}
@@ -92,7 +115,8 @@ FEMeshAdaptorSelection FEDomainErrorCriterion::GetElementSelection(FEElementSet*
 		double max_err = 0;
 		for (int j = 0; j < ni; ++j)
 		{
-			double sj = GetMaterialPointValue(*el.GetMaterialPoint(j));
+			double sj = 0.0;
+			m_data->GetMaterialPointValue(*el.GetMaterialPoint(j), sj);
 
 			double snj = el.Evaluate(ev, j);
 
@@ -100,12 +124,14 @@ FEMeshAdaptorSelection FEDomainErrorCriterion::GetElementSelection(FEElementSet*
 			if (err > max_err) max_err = err;
 		}
 
-		// see if it's too large
-		if (max_err > m_pct)
+		// calculate size metric (if m_error defined)
+		double s = max_err;
+		if (m_error > 0)
 		{
-			double f = m_pct / max_err;
-			elemList.push_back(i, f);
+			s = (max_err > m_error ? m_error / max_err : 1.0);
 		}
+		if (s <= 0.0) s = 1.0;
+		elemList.push_back(el.GetID(), s);
 	}
 
 	// create the element list of elements that need to be refined

@@ -28,22 +28,45 @@ SOFTWARE.*/
 #include <FECore/FEModel.h>
 
 BEGIN_FECORE_CLASS(FEElementSelectionCriterion, FEMeshAdaptorCriterion)
+	ADD_PARAMETER(m_value, "value");
 	ADD_PARAMETER(m_elemList, "element_list");
 END_FECORE_CLASS();
 
 FEElementSelectionCriterion::FEElementSelectionCriterion(FEModel* fem) : FEMeshAdaptorCriterion(fem)
 {
-
+	m_value = 1.0;
 }
 
 FEMeshAdaptorSelection FEElementSelectionCriterion::GetElementSelection(FEElementSet* elemSet)
 {
-	FEMeshAdaptorSelection elemList(m_elemList.size());
 	FEMesh& mesh = GetFEModel()->GetMesh();
-	for (int i = 0; i < (int)m_elemList.size(); ++i)
+	FEMeshAdaptorSelection elemList;
+	FEElementIterator it(&mesh, elemSet);
+	for (; it.isValid(); ++it)
 	{
-		elemList[i].m_elementIndex = m_elemList[i] - 1;
-		elemList[i].m_scaleFactor = 0.0;
+		FEElement& el = *it;
+
+		if (el.isActive())
+		{
+			// see if this element is in the element_list
+			// TODO: This is really slow. Need to speed this up!
+			int eid = el.GetID();
+			int n = -1;
+			for (int i = 0; i < m_elemList.size(); ++i)
+			{
+				if (m_elemList[i] == eid)
+				{
+					n = i;
+					break;
+				}
+			}
+
+			// set the value
+			if (n != -1)
+			{
+				elemList.push_back(eid, m_value);
+			}
+		}
 	}
 	return elemList;
 }

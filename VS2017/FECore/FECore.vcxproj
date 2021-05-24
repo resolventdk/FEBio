@@ -316,8 +316,8 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;HAVE_GSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <BrowseInformation>true</BrowseInformation>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BrowseInformation>false</BrowseInformation>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -334,7 +334,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <BrowseInformation>true</BrowseInformation>
+      <BrowseInformation>false</BrowseInformation>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -351,7 +351,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <BrowseInformation>true</BrowseInformation>
+      <BrowseInformation>false</BrowseInformation>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -368,7 +368,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;FECORE_DLL;FECORE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <BrowseInformation>true</BrowseInformation>
+      <BrowseInformation>false</BrowseInformation>
       <DisableSpecificWarnings>4251</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -386,7 +386,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <BrowseInformation>true</BrowseInformation>
+      <BrowseInformation>false</BrowseInformation>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -451,7 +451,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;HAVE_GSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <OpenMPSupport>true</OpenMPSupport>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -505,6 +505,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\FECore\Archive.h" />
     <ClInclude Include="..\..\FECore\BFGSSolver.h" />
+    <ClInclude Include="..\..\FECore\BSpline.h" />
     <ClInclude Include="..\..\FECore\Callback.h" />
     <ClInclude Include="..\..\FECore\ClassDescriptor.h" />
     <ClInclude Include="..\..\FECore\CompactMatrix.h" />
@@ -519,6 +520,8 @@
     <ClInclude Include="..\..\FECore\eig3.h" />
     <ClInclude Include="..\..\FECore\EigenSolver.h" />
     <ClInclude Include="..\..\FECore\ElementDataRecord.h" />
+    <ClInclude Include="..\..\FECore\expint_Ei.h" />
+    <ClInclude Include="..\..\FECore\FaceDataRecord.h" />
     <ClInclude Include="..\..\FECore\FEAnalysis.h" />
     <ClInclude Include="..\..\FECore\FEBodyLoad.h" />
     <ClInclude Include="..\..\FECore\FEBoundaryCondition.h" />
@@ -652,6 +655,7 @@
     <ClInclude Include="..\..\FECore\FETransform.h" />
     <ClInclude Include="..\..\FECore\FETrussDomain.h" />
     <ClInclude Include="..\..\FECore\FSPath.h" />
+    <ClInclude Include="..\..\FECore\gamma.h" />
     <ClInclude Include="..\..\FECore\Image.h" />
     <ClInclude Include="..\..\FECore\Integrate.h" />
     <ClInclude Include="..\..\FECore\JFNKMatrix.h" />
@@ -716,6 +720,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\FECore\Archive.cpp" />
     <ClCompile Include="..\..\FECore\BFGSSolver.cpp" />
+    <ClCompile Include="..\..\FECore\BSpline.cpp" />
     <ClCompile Include="..\..\FECore\Callback.cpp" />
     <ClCompile Include="..\..\FECore\colsol.cpp" />
     <ClCompile Include="..\..\FECore\CompactMatrix.cpp" />
@@ -730,6 +735,8 @@
     <ClCompile Include="..\..\FECore\eig3.cpp" />
     <ClCompile Include="..\..\FECore\EigenSolver.cpp" />
     <ClCompile Include="..\..\FECore\ElementDataRecord.cpp" />
+    <ClCompile Include="..\..\FECore\expint_Ei.cpp" />
+    <ClCompile Include="..\..\FECore\FaceDataRecord.cpp" />
     <ClCompile Include="..\..\FECore\FEAnalysis.cpp" />
     <ClCompile Include="..\..\FECore\FEBodyLoad.cpp" />
     <ClCompile Include="..\..\FECore\FEBoundaryCondition.cpp" />
@@ -854,6 +861,7 @@
     <ClCompile Include="..\..\FECore\FETransform.cpp" />
     <ClCompile Include="..\..\FECore\FETrussDomain.cpp" />
     <ClCompile Include="..\..\FECore\FSPath.cpp" />
+    <ClCompile Include="..\..\FECore\gamma.cpp" />
     <ClCompile Include="..\..\FECore\Image.cpp" />
     <ClCompile Include="..\..\FECore\Integrate.cpp" />
     <ClCompile Include="..\..\FECore\JFNKMatrix.cpp" />

@@ -31,56 +31,41 @@ SOFTWARE.*/
 #include "FEElasticMaterial.h"
 #include <FECore/FEElement.h>
 
-BEGIN_FECORE_CLASS(FEMaxStressCriterion, FEMeshAdaptorCriterion)
-	ADD_PARAMETER(m_maxStress, FE_RANGE_GREATER(0.0), "max_stress");
+BEGIN_FECORE_CLASS(FEStressCriterion, FEMeshAdaptorCriterion)
 	ADD_PARAMETER(m_metric, "metric");
 END_FECORE_CLASS();
 
-FEMaxStressCriterion::FEMaxStressCriterion(FEModel* fem) : FEMeshAdaptorCriterion(fem)
+FEStressCriterion::FEStressCriterion(FEModel* fem) : FEMeshAdaptorCriterion(fem)
 {
-	m_maxStress = 0.0;
 	m_metric = 0;
-
-	// set sort on by default
-	SetSort(true);
 }
 
-bool FEMaxStressCriterion::Check(FEElement& el, double& elemVal)
+bool FEStressCriterion::GetMaterialPointValue(FEMaterialPoint& mp, double& value)
 {
-	bool bselect = false;
-	int nint = el.GaussPoints();
-	elemVal = 0;
-	for (int n = 0; n < nint; ++n)
+	FEElasticMaterialPoint* ep = mp.ExtractData<FEElasticMaterialPoint>();
+	if (ep == nullptr) return false;
+
+	mat3ds s = ep->m_s;
+
+	// get the metric
+	value = 0.0;
+	switch (m_metric)
 	{
-		FEMaterialPoint* mp = el.GetMaterialPoint(n);
-		FEElasticMaterialPoint* ep = mp->ExtractData<FEElasticMaterialPoint>();
-		if (ep)
-		{
-			mat3ds& s = ep->m_s;
-
-			switch (m_metric)
-			{
-			case 0: elemVal = s.effective_norm(); break;
-			case 1:
-			{
-				mat3ds devs = s.dev();
-				double l[3], lmax;
-				devs.exact_eigen(l);
-				lmax = l[0];
-				if (l[1] > lmax) lmax = l[1];
-				if (l[2] > lmax) lmax = l[2];
-				elemVal = lmax;
-			}
-			break;
-			}
-
-			if (elemVal >= m_maxStress)
-			{
-				bselect = true;
-				break;
-			}
-		}
+	case 0: value = s.effective_norm(); break;
+	case 1:
+	{
+		mat3ds devs = s.dev();
+		double l[3], lmax;
+		devs.exact_eigen(l);
+		lmax = l[0];
+		if (l[1] > lmax) lmax = l[1];
+		if (l[2] > lmax) lmax = l[2];
+		value = lmax;
+	}
+	break;
+	default:
+		return false;
 	}
 
-	return bselect;
+	return true;
 }

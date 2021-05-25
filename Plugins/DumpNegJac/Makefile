@@ -2,9 +2,9 @@ CC = g++  # C compiler
 CFLAGS = -fPIC -g # C flags
 LDFLAGS = -shared -fopenmp  # linking flags
 RM = rm -f   # rm command
-TARGET = libnegjac_gcc64.so  # target lib
+TARGET = libnegjac.so  # target lib
 SDK_INC = -I../../  # path to febio header files
-SDK_LIB = -L../../build/lib/ -lfecore_gcc64  # path to febio libraries
+SDK_LIB = -L../../build/lib/ -lfecore  # path to febio libraries
 SRC_DIR = ./src
 
 SRCS := $(wildcard $(SRC_DIR)/*.cpp)  # source files

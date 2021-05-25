@@ -1,0 +1,3 @@
+[submodule "Plugins/febioheat"]
+	path = Plugins/febioheat
+	url = https://github.com/febiosoftware/febioheat.git

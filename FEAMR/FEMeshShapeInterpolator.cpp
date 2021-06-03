@@ -26,11 +26,15 @@ SOFTWARE.*/
 #include "FEMeshShapeInterpolator.h"
 #include <FECore/FEOctreeSearch.h>
 #include <FECore/FEMesh.h>
+#include <FECore/log.h>
 
 //=============================================================================================
-FEMeshShapeInterpolator::FEMeshShapeInterpolator(FEMesh* mesh) : m_mesh(mesh)
+FEMeshShapeInterpolator::FEMeshShapeInterpolator(FEMesh* mesh, bool current, double atol) : m_mesh(mesh)
 {
+	m_current = current;
+	m_atol = atol;
 	m_os = nullptr;
+
 }
 
 FEMeshShapeInterpolator::~FEMeshShapeInterpolator()
@@ -44,6 +48,8 @@ bool FEMeshShapeInterpolator::Init()
 
 	if (m_os == nullptr)
 	{
+		FEOctreeSearch::m_current = true;
+		FEOctreeSearch::m_geom_atol = m_atol;
 		m_os = new FEOctreeSearch(m_mesh);
 		if (m_os->Init() == false) return false;
 	}
@@ -55,11 +61,15 @@ bool FEMeshShapeInterpolator::Init()
 		Data& di = m_data[i];
 		vec3d ri = m_trgPoints[i];
 
+		printf("Searching for trgPoint %d at (%f,%f,%f)\n", i, ri.x, ri.y, ri.z);
+
 		// find the element
+		// TODO add tolerances
 		di.r[0] = di.r[1] = di.r[2] = 0.0;
 		di.el = (FESolidElement*)m_os->FindElement(ri, di.r);
 		if (di.el == nullptr)
 		{
+			printf("Unable to find element of trgPoint %d at (%f,%f,%f)\n", i, ri.x, ri.y, ri.z);
 			assert(false);
 			return false;
 		}

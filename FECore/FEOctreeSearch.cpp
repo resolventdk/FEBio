@@ -28,6 +28,12 @@ SOFTWARE.*/
 #include "FEMesh.h"
 #include "FEElementList.h"
 #include "FESolidDomain.h"
+#include <utility>  // pair, make_pair
+
+//-----------------------------------------------------------------------------
+// assign default values to static variables
+bool FEOctreeSearch::m_current = false; // build for undeformed mesh configuration
+double FEOctreeSearch::m_geom_atol = 1e-3; // set absolute geometric tolerance
 
 //-----------------------------------------------------------------------------
 FEOctreeSearch::Block::Block(FEMesh* mesh, int level)
@@ -122,11 +128,11 @@ bool FEOctreeSearch::Block::ElementIntersectsNode(FEElement* pel)
 	FEElement& el = *pel;
 	int N = el.Nodes();
 	vector<vec3d> fenode(N);
-	fenode[0] = mesh.Node(el.m_node[0]).m_r0;
+	fenode[0] = (m_current) ? mesh.Node(el.m_node[0]).m_rt : mesh.Node(el.m_node[0]).m_r0;
 	vec3d fmin = fenode[0];
 	vec3d fmax = fenode[0];
 	for (int i = 1; i<N; ++i) {
-		fenode[i] = mesh.Node(el.m_node[i]).m_r0;
+		fenode[i] = (m_current) ? mesh.Node(el.m_node[i]).m_rt : mesh.Node(el.m_node[i]).m_r0; 
 		if (fenode[i].x < fmin.x) fmin.x = fenode[i].x;
 		if (fenode[i].x > fmax.x) fmax.x = fenode[i].x;
 		if (fenode[i].y < fmin.y) fmin.y = fenode[i].y;
@@ -158,16 +164,24 @@ bool FEOctreeSearch::Block::IsInside(const vec3d& r) const
 }
 
 //-----------------------------------------------------------------------------
-FEElement* FEOctreeSearch::Block::FindElement(const vec3d& y, double r[3])
+std::pair<FEElement*, double> FEOctreeSearch::Block::FindElement(const vec3d& y, double r[3], 
+	std::pair<FEElement*, double> elemWithMinDist)
 {
+
 	if (IsInside(y))
 	{
 		if (m_children.empty() == false)
 		{
 			for (int i = 0; i < m_children.size(); ++i)
 			{
-				FEElement* pe = m_children[i]->FindElement(y, r);
-				if (pe) return pe;
+				std::pair<FEElement*, double> elemWithDist = m_children[i]->FindElement(y, r, elemWithMinDist);
+				if (elemWithDist.first) { // if this is a valid element compare distance to current minimum distance
+					if (elemWithDist.second < m_eps) return elemWithDist; // we cannot hope to find anything closer, so stop searching
+					if (elemWithDist.second < elemWithMinDist.second) {  // this is better than current closest element
+						elemWithMinDist = elemWithDist; // new closest element
+					}
+				}
+
 			}
 		}
 		else
@@ -176,20 +190,22 @@ FEElement* FEOctreeSearch::Block::FindElement(const vec3d& y, double r[3])
 			int NE = (int)m_selist.size();
 			for (int i = 0; i<NE; ++i)
 			{
+
 				// get the next element
 				FESolidElement& e = *((FESolidElement*)m_selist[i]);
 
 				// get the element nodal coordinates
 				int neln = e.Nodes();
-				for (int j = 0; j<neln; ++j) x[j] = m_mesh->Node(e.m_node[j]).m_r0;
+				for (int j = 0; j<neln; ++j) 
+					x[j] = (m_current) ? m_mesh->Node(e.m_node[j]).m_rt : m_mesh->Node(e.m_node[j]).m_r0;
 
 				// first, as a quick check, we see if y lies in the bounding box defined by x
 				FEBoundingBox box(x[0]);
 				for (int j = 1; j<neln; ++j) box.add(x[j]);
 
-				// inflate a little for round-off
-				double dr = box.radius()*1e-6;
-				box.inflate(dr, dr, dr);
+				// TODO inflate for geometric tolerance
+				//double dr = box.radius() * 1e-6; // TODO fix
+				box.inflate(m_geom_atol, m_geom_atol, m_geom_atol);
 
 				if (box.IsInside(y))
 				{
@@ -197,14 +213,87 @@ FEElement* FEOctreeSearch::Block::FindElement(const vec3d& y, double r[3])
 
 					// If the point y lies inside the box, we apply a Newton method to find
 					// the isoparametric coordinates r
-					if (dom->ProjectToReferenceElement(e, y, r)) return &e;
+					if (m_current) {
+						dom->ProjectToElement(e, y, r);
+					} else {
+						dom->ProjectToReferenceElement(e, y, r);
+					}
+
+					if ((e.Shape() == ET_TET4) || (e.Shape() == ET_TET5) || (e.Shape() == ET_TET10))
+					{
+						// check if point is inside element
+						if ((r[0] >= -m_eps) && (r[0] <= 1.0 + m_eps) &&
+							(r[1] >= -m_eps) && (r[1] <= 1.0 + m_eps) &&
+							(r[2] >= -m_eps) && (r[2] <= 1.0 + m_eps) &&
+							(r[0] + r[1] + r[2] <= 1.0 + m_eps)) {
+							return std::make_pair(&e, 0.0);  // we cannot hope to find anything closer, so stop searching
+						} else {
+
+							/*
+							Find closest point on surface in isoparametric coordinates.
+							This may not be the closest point in actual coords, but it is an approximation.
+							Similar to implementation of function vtkQuadraticTetra::EvaluatePosition
+							https://github.com/Kitware/VTK/blob/1964f28c2aaabe42cd0697208fb25d34a8c500ae/Common/DataModel/vtkQuadraticTetra.cxx 
+
+							For a tet the closest point on surface to r in parametric coords is r with components 
+							capped at 0 <= r <= 1 unless lookup point is located in quadrant 1; r[i]>0 for all i.
+                            Note the vtk code seemingly does not consider the quadrant 1 case, which must be a mistake.
+							*/
+
+							double cp[3];  // closest point in parametric coords
+
+							if (r[0] > 0.0 && r[1] > 0.0 && r[2] > 0.0) {  // quadrant 1 case
+								vec3d norm = vec3d(1.0, 1.0, 1.0) / sqrt(3.0);  // face normal
+								vec3d orig = vec3d(1.0, 0.0, 0.0);  // point on the face
+								vec3d rvec = vec3d(r[0], r[1], r[2]);  // lookup point as vec3d
+								vec3d proj = rvec - (norm * ( norm * (rvec - orig) ));  // projection on plane
+								cp[0] = proj.x;
+								cp[1] = proj.y;
+								cp[2] = proj.z;
+							} else {
+								for (int i = 0; i < 3; i++) {
+									if (r[i] < 0.0) {
+										cp[i] = 0.0;
+									}
+									else if (r[i] > 1.0) {
+										cp[i] = 1.0;
+									}
+									else {
+										cp[i] = r[i];
+									}
+								}
+							}
+
+							// compute closest point in actual coordinates
+							const int MN = FEElement::MAX_NODES;
+							double H[MN];
+							e.shape_fnc(H, cp[0], cp[1], cp[2]);  // evaluate shape functions
+							vec3d cp_x = vec3d(0.0, 0.0, 0.0);
+							for (int j = 0; j < neln; ++j)
+								cp_x += x[j] * H[j];  
+
+							// compute distance to lookup point
+							double dist = (cp_x - y).norm();
+
+							// compare to current minimum, update if smaller
+							if (dist < elemWithMinDist.second) {  // this is better than current closest element
+								elemWithMinDist = std::make_pair(&e, dist); // new closest element
+							}
+
+						}
+					}
+					else {
+						// unsupported element type
+						assert(false);
+					}
+
 				}
 			}
 		}
 	}
-	
-	return nullptr;
+	return elemWithMinDist; // just return the input or updated input
 }
+
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -235,7 +324,7 @@ FEOctreeSearch::~FEOctreeSearch()
 }
 
 //-----------------------------------------------------------------------------
-bool FEOctreeSearch::Init(double inflate)
+bool FEOctreeSearch::Init()
 {
 	if (m_mesh == nullptr) return false;
 
@@ -264,11 +353,11 @@ bool FEOctreeSearch::Init(double inflate)
 	}
 
 	// Find the bounding box of the mesh
-	vec3d r0 = (m_mesh->Node(0)).m_r0;
+	vec3d r0 = (m_current) ? (m_mesh->Node(0)).m_rt : (m_mesh->Node(0)).m_r0;
 	root.m_cmin = r0;
 	root.m_cmax = r0;
 	for (int i = 1; i<m_mesh->Nodes(); ++i) {
-		vec3d r = (m_mesh->Node(i)).m_r0;
+		vec3d r = (m_current) ? (m_mesh->Node(i)).m_rt : (m_mesh->Node(i)).m_r0; 
 		if (r.x < root.m_cmin.x) root.m_cmin.x = r.x;
 		if (r.x > root.m_cmax.x) root.m_cmax.x = r.x;
 		if (r.y < root.m_cmin.y) root.m_cmin.y = r.y;
@@ -277,8 +366,8 @@ bool FEOctreeSearch::Init(double inflate)
 		if (r.z > root.m_cmax.z) root.m_cmax.z = r.z;
 	}
 
-	// expand bounding box by search tolerance stol
-	double d = (root.m_cmax - root.m_cmin).norm()*inflate;
+	// expand bounding box by absolute geometric tolerance
+	double d = m_geom_atol;  // (root.m_cmax - root.m_cmin).norm()* inflate;
 	root.m_cmin -= vec3d(d, d, d);
 	root.m_cmax += vec3d(d, d, d);
 
@@ -300,5 +389,21 @@ bool FEOctreeSearch::Init(double inflate)
 //-----------------------------------------------------------------------------
 FEElement* FEOctreeSearch::FindElement(const vec3d& x, double r[3])
 {
-	return m_root->FindElement(x, r);
+	std::pair<FEElement*, double> elemWithMinDist = m_root->FindElement(x, r, std::make_pair(nullptr, 1e6));
+
+	if (elemWithMinDist.second < m_geom_atol)
+		return elemWithMinDist.first;
+	else {
+		printf("Error in FindElement\n");
+		printf("For point : (%f,%f,%f)\n", x.x, x.y, x.z);
+		printf("Distance to closest element found: %f above tolerance %f\n", elemWithMinDist.second, m_geom_atol);
+		int neln = elemWithMinDist.first->Nodes();
+		for (int j = 0; j < neln; ++j) {
+			vec3d nx = m_mesh->Node(elemWithMinDist.first->m_node[j]).m_rt;
+			printf("Elem node %d : (%f,%f,%f)\n", nx.x, nx.y, nx.z);
+		}
+
+	}
+
+		return nullptr;
 }

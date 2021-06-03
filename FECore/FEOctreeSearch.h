@@ -49,7 +49,7 @@ class FECORE_API FEOctreeSearch
 		void FillBlock();
 		bool ElementIntersectsNode(FEElement* pe);
 
-		FEElement* FindElement(const vec3d& y, double r[3]);
+		std::pair<FEElement*, double> FindElement(const vec3d& y, double r[3], std::pair<FEElement*, double>);
 
 		bool IsInside(const vec3d& r) const;
 
@@ -68,9 +68,14 @@ public:
 	~FEOctreeSearch();
 
 	//! initialize search structures
-	bool Init(double inflate = 0.005);
+	bool Init();
 
 	FEElement* FindElement(const vec3d& x, double r[3]);
+
+	// static variables that is shared with Block objects
+	static bool m_current;  // construct for current or reference geometry
+	static double m_geom_atol; // geometric abosule tolerance 
+	static constexpr double m_eps = 1e-8;  // round of error 
 
 protected:
 	FEMesh*		m_mesh;			//!< the mesh
@@ -78,4 +83,5 @@ protected:
 	Block*		m_root;			//!< root node in octree
 	int			m_max_level;	//!< maximum allowable number of levels in octree
 	int			m_max_elem;		//!< maximum allowable number of elements in any node
+
 };

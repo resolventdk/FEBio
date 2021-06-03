@@ -41,7 +41,7 @@ class FEMeshShapeInterpolator : public FEMeshDataInterpolator
 	};
 
 public:
-	FEMeshShapeInterpolator(FEMesh* mesh);
+	FEMeshShapeInterpolator(FEMesh* mesh, bool current = false, double atol = 1e-3);
 	~FEMeshShapeInterpolator();
 
 	bool Init() override;
@@ -59,4 +59,6 @@ private:
 	FEOctreeSearch*	m_os;
 	vector<vec3d>	m_trgPoints;
 	vector<Data>	m_data;
+	bool            m_current;
+	double          m_atol;
 };

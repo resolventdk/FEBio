@@ -31,6 +31,7 @@ SOFTWARE.*/
 #include "FEHexRefine2D.h"
 #include "FETetRefine.h"
 #include "FEMMGRemesh.h"
+#include "FEMMGSolutionMapper.h"
 #include "FETestRefine.h"
 #include "FEVariableCriterion.h"
 #include "FEElementSelectionCriterion.h"
@@ -47,6 +48,7 @@ REGISTER_FECORE_CLASS(FEHexRefine     , "hex_refine");
 REGISTER_FECORE_CLASS(FEHexRefine2D   , "hex_refine2d");
 REGISTER_FECORE_CLASS(FETetRefine     , "tet_refine");
 REGISTER_FECORE_CLASS(FEMMGRemesh     , "mmg_remesh");
+REGISTER_FECORE_CLASS(FEMMGSolutionMapper, "mmg_solution_mapper");
 REGISTER_FECORE_CLASS(FETestRefine    , "test_refine");
 
 // adaptor criteria

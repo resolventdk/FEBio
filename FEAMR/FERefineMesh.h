@@ -52,7 +52,7 @@ public:
 	~FERefineMesh();
 
 	// Apply mesh refinement
-	bool Apply(int iteration) override;
+	virtual bool Apply(int iteration) override;
 
 protected:
 	// Derived classes need to override this function

@@ -167,145 +167,145 @@ void FERefineMesh::CopyMesh()
 	m_meshCopy->CopyFrom(mesh);
 }
 
-FEDomainMap* createElemDataMap(FEModel& fem, FEDomain& dom, vector<vec3d>& nodePos, FEDomainMap* map, FEMeshDataInterpolator* dataMapper)
-{
-	assert(map->StorageFormat() == Storage_Fmt::FMT_NODE);
-
-	FEDataType dataType = map->DataType();
-	int dataSize = 0;
-	switch (dataType)
-	{
-	case FEDataType::FE_DOUBLE: dataSize = 1; break;
-	case FEDataType::FE_VEC3D: dataSize = 3; break;
-	case FEDataType::FE_MAT3D: dataSize = 9; break;
-	case FEDataType::FE_MAT3DS: dataSize = 6; break;
-	default:
-		assert(false);
-		return nullptr;
-	}
-
-	// count nr of integration points
-	int NMP = 0;
-	for (int i = 0; i < dom.Elements(); ++i)
-	{
-		FEElement& el = dom.ElementRef(i);
-		NMP += el.GaussPoints();
-	}
-
-	int N0 = nodePos.size();
-
-	// create new domain map
-	FEDomainMap* elemData = new FEDomainMap(map->DataType(), Storage_Fmt::FMT_MATPOINTS);
-	FEElementSet* eset = new FEElementSet(&fem);
-	eset->Create(&dom);
-	elemData->Create(eset);
-
-	vector<double> srcData(N0);
-	vector<double> trgData(NMP);
-
-	vector< vector<double> > mappedData(NMP, vector<double>(9, 0.0));
-
-	// loop over all the new nodes
-	for (int l = 0; l < dataSize; ++l)
-	{
-		for (int i = 0; i < N0; ++i)
-		{
-			double vm = 0.0;
-			switch (dataType)
-			{
-			case FEDataType::FE_DOUBLE: vm = map->value<double>(0, i); break;
-			case FEDataType::FE_VEC3D:
-			{
-				vec3d v = map->value<vec3d>(0, i);
-				if (l == 0) vm = v.x;
-				if (l == 1) vm = v.y;
-				if (l == 2) vm = v.z;
-			}
-			break;
-			case FEDataType::FE_MAT3D:
-			{
-				int LUT[9][2] = { {0,0}, {0,1}, {0,2}, {1,0}, {1,1}, {1,2}, {2,0}, {2,1}, {2,2} };
-				mat3d v = map->value<mat3d>(0, i);
-				vm = v(LUT[l][0], LUT[l][1]);
-			}
-			break;
-			case FEDataType::FE_MAT3DS:
-			{
-				int LUT[6][2] = { {0,0}, {0,1}, {0,2}, {1,1}, {1,2}, {2,2} };
-				mat3ds v = map->value<mat3ds>(0, i);
-				vm = v(LUT[l][0], LUT[l][1]);
-			}
-			break;
-			default:
-				assert(false);
-			}
-			srcData[i] = vm;
-		}
-
-		dataMapper->Map(trgData, [&srcData](int sourcePoint) {
-			return srcData[sourcePoint];
-		});
-
-		for (int i = 0; i < NMP; ++i)
-		{
-			mappedData[i][l] = trgData[i];
-		}
-	}
-
-	// write mapped data to domain map
-	int n = 0;
-	for (int i = 0; i < dom.Elements(); ++i)
-	{
-		FEElement& el = dom.ElementRef(i);
-		int nint = el.GaussPoints();
-		for (int j = 0; j < nint; ++j)
-		{
-			vector<double>& vj = mappedData[n++];
-
-			for (int l = 0; l < dataSize; ++l)
-			{
-				switch (dataType)
-				{
-				case FEDataType::FE_DOUBLE: elemData->setValue(i, j, vj[0]); break;
-				case FEDataType::FE_VEC3D:
-				{
-					vec3d v;
-					v.x = vj[0];
-					v.y = vj[1];
-					v.z = vj[2];
-					elemData->setValue(i, j, v);
-				}
-				break;
-				case FEDataType::FE_MAT3D:
-				{
-					mat3d v;
-					v(0, 0) = vj[0]; v(0, 1) = vj[1]; v(0, 2) = vj[2];
-					v(1, 0) = vj[3]; v(1, 1) = vj[4]; v(1, 2) = vj[5];
-					v(2, 0) = vj[6]; v(2, 1) = vj[7]; v(2, 2) = vj[8];
-					elemData->setValue(i, j, v);
-				}
-				break;
-				case FEDataType::FE_MAT3DS:
-				{
-					mat3ds v;
-					v(0, 0) = vj[0];
-					v(0, 1) = vj[1];
-					v(0, 2) = vj[2];
-					v(1, 1) = vj[3];
-					v(1, 2) = vj[4];
-					v(2, 2) = vj[5];
-					elemData->setValue(i, j, v);
-				}
-				break;
-				default:
-					assert(false);
-				}
-			}
-		}
-	}
-
-	return elemData;
-}
+//FEDomainMap* createElemDataMap(FEModel& fem, FEDomain& dom, vector<vec3d>& nodePos, FEDomainMap* map, FEMeshDataInterpolator* dataMapper)
+//{
+//	assert(map->StorageFormat() == Storage_Fmt::FMT_NODE);
+//
+//	FEDataType dataType = map->DataType();
+//	int dataSize = 0;
+//	switch (dataType)
+//	{
+//	case FEDataType::FE_DOUBLE: dataSize = 1; break;
+//	case FEDataType::FE_VEC3D: dataSize = 3; break;
+//	case FEDataType::FE_MAT3D: dataSize = 9; break;
+//	case FEDataType::FE_MAT3DS: dataSize = 6; break;
+//	default:
+//		assert(false);
+//		return nullptr;
+//	}
+//
+//	// count nr of integration points
+//	int NMP = 0;
+//	for (int i = 0; i < dom.Elements(); ++i)
+//	{
+//		FEElement& el = dom.ElementRef(i);
+//		NMP += el.GaussPoints();
+//	}
+//
+//	int N0 = nodePos.size();
+//
+//	// create new domain map
+//	FEDomainMap* elemData = new FEDomainMap(map->DataType(), Storage_Fmt::FMT_MATPOINTS);
+//	FEElementSet* eset = new FEElementSet(&fem);
+//	eset->Create(&dom);
+//	elemData->Create(eset);
+//
+//	vector<double> srcData(N0);
+//	vector<double> trgData(NMP);
+//
+//	vector< vector<double> > mappedData(NMP, vector<double>(9, 0.0));
+//
+//	// loop over all the new nodes
+//	for (int l = 0; l < dataSize; ++l)
+//	{
+//		for (int i = 0; i < N0; ++i)
+//		{
+//			double vm = 0.0;
+//			switch (dataType)
+//			{
+//			case FEDataType::FE_DOUBLE: vm = map->value<double>(0, i); break;
+//			case FEDataType::FE_VEC3D:
+//			{
+//				vec3d v = map->value<vec3d>(0, i);
+//				if (l == 0) vm = v.x;
+//				if (l == 1) vm = v.y;
+//				if (l == 2) vm = v.z;
+//			}
+//			break;
+//			case FEDataType::FE_MAT3D:
+//			{
+//				int LUT[9][2] = { {0,0}, {0,1}, {0,2}, {1,0}, {1,1}, {1,2}, {2,0}, {2,1}, {2,2} };
+//				mat3d v = map->value<mat3d>(0, i);
+//				vm = v(LUT[l][0], LUT[l][1]);
+//			}
+//			break;
+//			case FEDataType::FE_MAT3DS:
+//			{
+//				int LUT[6][2] = { {0,0}, {0,1}, {0,2}, {1,1}, {1,2}, {2,2} };
+//				mat3ds v = map->value<mat3ds>(0, i);
+//				vm = v(LUT[l][0], LUT[l][1]);
+//			}
+//			break;
+//			default:
+//				assert(false);
+//			}
+//			srcData[i] = vm;
+//		}
+//
+//		dataMapper->Map(trgData, [&srcData](int sourcePoint) {
+//			return srcData[sourcePoint];
+//		});
+//
+//		for (int i = 0; i < NMP; ++i)
+//		{
+//			mappedData[i][l] = trgData[i];
+//		}
+//	}
+//
+//	// write mapped data to domain map
+//	int n = 0;
+//	for (int i = 0; i < dom.Elements(); ++i)
+//	{
+//		FEElement& el = dom.ElementRef(i);
+//		int nint = el.GaussPoints();
+//		for (int j = 0; j < nint; ++j)
+//		{
+//			vector<double>& vj = mappedData[n++];
+//
+//			for (int l = 0; l < dataSize; ++l)
+//			{
+//				switch (dataType)
+//				{
+//				case FEDataType::FE_DOUBLE: elemData->setValue(i, j, vj[0]); break;
+//				case FEDataType::FE_VEC3D:
+//				{
+//					vec3d v;
+//					v.x = vj[0];
+//					v.y = vj[1];
+//					v.z = vj[2];
+//					elemData->setValue(i, j, v);
+//				}
+//				break;
+//				case FEDataType::FE_MAT3D:
+//				{
+//					mat3d v;
+//					v(0, 0) = vj[0]; v(0, 1) = vj[1]; v(0, 2) = vj[2];
+//					v(1, 0) = vj[3]; v(1, 1) = vj[4]; v(1, 2) = vj[5];
+//					v(2, 0) = vj[6]; v(2, 1) = vj[7]; v(2, 2) = vj[8];
+//					elemData->setValue(i, j, v);
+//				}
+//				break;
+//				case FEDataType::FE_MAT3DS:
+//				{
+//					mat3ds v;
+//					v(0, 0) = vj[0];
+//					v(0, 1) = vj[1];
+//					v(0, 2) = vj[2];
+//					v(1, 1) = vj[3];
+//					v(1, 2) = vj[4];
+//					v(2, 2) = vj[5];
+//					elemData->setValue(i, j, v);
+//				}
+//				break;
+//				default:
+//					assert(false);
+//				}
+//			}
+//		}
+//	}
+//
+//	return elemData;
+//}
 
 bool createNodeDataMap(FEDomain& dom, FEDomainMap* map, FEDomainMap* nodeMap)
 {
@@ -345,7 +345,7 @@ bool createNodeDataMap(FEDomain& dom, FEDomainMap* map, FEDomainMap* nodeMap)
 
 	// get the data format
 	int dataFormat = map->StorageFormat();
-	if ((dataFormat != FMT_MATPOINTS) && (dataFormat != FMT_MULT)) return false;
+	//if ((dataFormat != FMT_MATPOINTS) && (dataFormat != FMT_MULT)) return false;
 
 	// loop over all elements
 	for (int i = 0; i < NE; ++i)
@@ -353,7 +353,13 @@ bool createNodeDataMap(FEDomain& dom, FEDomainMap* map, FEDomainMap* nodeMap)
 		FEElement& e = dom.ElementRef(i);
 		int ne = e.Nodes();
 
-		int ni = (dataFormat == FMT_MATPOINTS ? e.GaussPoints() : ne);
+		int ni;			
+		switch (dataFormat) {
+		case FMT_MATPOINTS: ni = e.GaussPoints(); break;
+		case FMT_MULT: ni = ne; break;
+		case FMT_ITEM: ni = 1; break;
+		default: printf("Unsupported dataFormat for mapping!\n"); return false;  break;
+		}
 
 		for (int j = 0; j < dataSize; ++j)
 		{
@@ -391,13 +397,18 @@ bool createNodeDataMap(FEDomain& dom, FEDomainMap* map, FEDomainMap* nodeMap)
 			}
 
 			// project to nodes
-			if (dataFormat == FMT_MATPOINTS)
-			{
-				e.project_to_nodes(si, sn);
-			}
-			else
-			{
-				for (int k = 0; k < ne; ++k) sn[k] = si[k];
+			switch (dataFormat) {
+			case FMT_MATPOINTS:
+				e.project_to_nodes(si, sn); 
+				break;
+			case FMT_MULT: 
+				for (int k = 0; k < ne; ++k) 
+					sn[k] = si[k]; 
+				break;
+			case FMT_ITEM: ni = 1; 
+				for (int k = 0; k < ne; ++k)
+					sn[k] = si[0];
+				break;
 			}
 
 			for (int k = 0; k < ne; ++k)
@@ -464,9 +475,10 @@ bool createNodeDataMap(FEDomain& dom, FEDomainMap* map, FEDomainMap* nodeMap)
 	return true;
 }
 
-void NodeToElemData(FEModel& fem, FEDomain& dom, FEDomainMap* nodeMap, FEDomainMap* elemMap, FEMeshDataInterpolator* dataMapper)
+FEDomainMap* NodeToElemData(FEModel& fem, FEDomain& dom, FEDomainMap* nodeMap, FEMeshDataInterpolator* dataMapper, Storage_Fmt dataFormat)
 {
 	assert(nodeMap->StorageFormat() == Storage_Fmt::FMT_NODE);
+	assert(dataFormat == Storage_Fmt::FMT_MULT || dataFormat == Storage_Fmt::FMT_MATPOINTS);
 
 	FEDataType dataType = nodeMap->DataType();
 	int dataSize = 0;
@@ -479,30 +491,50 @@ void NodeToElemData(FEModel& fem, FEDomain& dom, FEDomainMap* nodeMap, FEDomainM
 	default:
 		assert(false);
 		throw std::runtime_error("Error in FEMMGRemesh::MMG::NodeToElemData");
-		return;
+		return nullptr;
 	}
 
-	// count nr of points
-	int NN = nodeMap->DataCount();
+	// create new domain map
+	FEDomainMap* elemMap = new FEDomainMap(nodeMap->DataType(), dataFormat);
+	FEElementSet* eset = new FEElementSet(&fem);
+	eset->Create(&dom);
+	elemMap->Create(eset);
+
+	// count nr of source points
+	int NSourcePoints = nodeMap->DataCount();
 
 	// count nr of target points
-	int NE = dom.Elements();
-	int NP = 0;
-	for (int i = 0; i < dom.Elements(); ++i)
+	int NTargetPoints = 0;
+	switch (elemMap->StorageFormat())
 	{
-		FEElement& el = dom.ElementRef(i);
-		NP += el.Nodes();
+	case Storage_Fmt::FMT_MULT:
+		for (int i = 0; i < dom.Elements(); ++i)
+		{
+			FEElement& el = dom.ElementRef(i);
+			NTargetPoints += el.Nodes();
+		}
+		break;
+	case Storage_Fmt::FMT_MATPOINTS:
+		for (int i = 0; i < dom.Elements(); ++i)
+		{
+			FEElement& el = dom.ElementRef(i);
+			NTargetPoints += el.GaussPoints();
+		}
+		break;
 	}
 
-	vector<double> srcData(NN);
-	vector<double> trgData(NP);
+	// allocate interpolation buffers
+	vector<double> srcData(NSourcePoints);
+	vector<double> trgData(NTargetPoints);
 
-	vector< vector<double> > mappedData(NP, vector<double>(9, 0.0));
+	// help buffer(npts, ncomps)
+	vector< vector<double> > mappedData(NTargetPoints, vector<double>(9, 0.0));
 
-	// loop over all the new nodes
+	// loop components of data
 	for (int l = 0; l < dataSize; ++l)
 	{
-		for (int i = 0; i < NN; ++i)
+		// pack data from source points
+		for (int i = 0; i < NSourcePoints; ++i)
 		{
 			double vm = 0.0;
 			switch (dataType)
@@ -536,20 +568,17 @@ void NodeToElemData(FEModel& fem, FEDomain& dom, FEDomainMap* nodeMap, FEDomainM
 			srcData[i] = vm;
 		}
 
+		// interpolate from source to target nodes
 		dataMapper->Map(trgData, [&srcData](int sourcePoint) {
 			return srcData[sourcePoint];
 		});
 
-		for (int i = 0; i < NP; ++i)
+		// unpack data to target points
+		for (int i = 0; i < NTargetPoints; ++i)
 		{
 			mappedData[i][l] = trgData[i];
 		}
 	}
-
-	// create new element set
-	FEElementSet* eset = new FEElementSet(&fem);
-	eset->Create(&dom);
-	elemMap->Create(eset);
 
 	// write mapped data to domain map
 	int n = 0;
@@ -557,7 +586,18 @@ void NodeToElemData(FEModel& fem, FEDomain& dom, FEDomainMap* nodeMap, FEDomainM
 	{
 		FEElement& el = dom.ElementRef(i);
 
-		for (int k = 0; k < el.Nodes(); ++k)
+		int NElementDataPoints;
+		switch (elemMap->StorageFormat())
+		{
+		case Storage_Fmt::FMT_MULT:
+			NElementDataPoints = el.Nodes();
+			break;
+		case Storage_Fmt::FMT_MATPOINTS:
+			NElementDataPoints = el.GaussPoints();
+			break;
+		}
+
+		for (int k = 0; k < NElementDataPoints; ++k)
 		{
 			vector<double>& vj = mappedData[n++];
 
@@ -599,6 +639,9 @@ void NodeToElemData(FEModel& fem, FEDomain& dom, FEDomainMap* nodeMap, FEDomainM
 			}
 		}
 	}
+
+	return elemMap;
+
 }
 
 bool FERefineMesh::BuildMapData()
@@ -788,7 +831,8 @@ bool FERefineMesh::BuildUserMapData()
 		{
 			FEDataType dataType = dmap->DataType();
 			if ((dataType != FEDataType::FE_DOUBLE) && 
-				(dataType != FEDataType::FE_VEC3D)) return false;
+				(dataType != FEDataType::FE_VEC3D)  &&
+				(dataType != FEDataType::FE_MAT3D) ) return false;
 
 			feLog("\tProcessing user data map \"%s\" ...", dmap->GetName().c_str());
 
@@ -916,7 +960,7 @@ void FERefineMesh::TransferDomainMapData()
 					FEDomainMap* nodeMap = nodeMap_i[j];
 
 					// map node data to integration points
-					FEDomainMap* elemMap = createElemDataMap(fem, dom, srcPoints, nodeMap, mapper);
+					FEDomainMap* elemMap = NodeToElemData(fem, dom, nodeMap, mapper, Storage_Fmt::FMT_MATPOINTS);
 
 					elemMapList[j] = elemMap;
 					feLog("done.\n");
@@ -979,7 +1023,29 @@ void FERefineMesh::TransferUserMapData()
 		FEDomainMap* elemMap = dynamic_cast<FEDomainMap*>(mesh.GetDataMap(i));
 		FEDomainMap* nodeMap = m_userDataList[i];
 
-		feLog("\tMapping user map \"%s\" ...", elemMap->GetName().c_str());
+		Storage_Fmt dataFormat = static_cast<Storage_Fmt>(elemMap->StorageFormat()); // get the storage format
+		string name = elemMap->GetName(); // get name of elemMap
+
+		// set target data format
+		Storage_Fmt targetFormat;
+		switch (dataFormat) {
+		case Storage_Fmt::FMT_ITEM:
+			feLog("\tChanging storage format of user element map \"%s\" to MATPOINTS\n", name.c_str());
+			targetFormat = Storage_Fmt::FMT_MATPOINTS;
+			break;
+		case Storage_Fmt::FMT_MULT:
+			targetFormat = dataFormat;
+			break;
+		case Storage_Fmt::FMT_MATPOINTS:
+			targetFormat = dataFormat;
+			break;
+		default:
+			assert(false);
+			throw std::runtime_error("Error in FERefineMesh::TransferUserMapData");
+			break;
+		}
+
+		feLog("\tMapping user map \"%s\" ...\n", name.c_str());
 
 		// build the source point list
 		vector<vec3d> srcPoints;
@@ -999,15 +1065,33 @@ void FERefineMesh::TransferUserMapData()
 		FEDomain& dom = const_cast<FEDomain&>(*domainList.GetDomain(0));
 		int NE = dom.Elements();
 		vector<vec3d> trgPoints; trgPoints.reserve(NE);
-		for (int n = 0; n < NE; ++n)
-		{
-			FEElement& el = dom.ElementRef(n);
-			int ne = el.Nodes();
-			for (int l = 0; l < ne; ++l)
+		switch (targetFormat) {
+		case Storage_Fmt::FMT_MATPOINTS:
+			for (int n = 0; n < NE; ++n)
 			{
-				vec3d r = mesh.Node(el.m_node[l]).m_r0;
-				trgPoints.push_back(r);
+				FEElement& el = dom.ElementRef(n);
+				int nint = el.GaussPoints();
+				for (int l = 0; l < nint; ++l)
+				{
+					FEMaterialPoint& mp = *el.GetMaterialPoint(l);
+					vec3d r = mp.m_r0;
+					trgPoints.push_back(r);
+				}
 			}
+			break;
+		case Storage_Fmt::FMT_MULT:
+
+			for (int n = 0; n < NE; ++n)
+			{
+				FEElement& el = dom.ElementRef(n);
+				int ne = el.Nodes();
+				for (int l = 0; l < ne; ++l)
+				{
+					vec3d r = mesh.Node(el.m_node[l]).m_r0;
+					trgPoints.push_back(r);
+				}
+			}
+			break;
 		}
 
 		// set up mapper
@@ -1042,9 +1126,16 @@ void FERefineMesh::TransferUserMapData()
 			throw std::runtime_error("Failed to initialize LLQ");
 		}
 
-		// map node data to integration points
-		NodeToElemData(fem, dom, nodeMap, elemMap, mapper);
+		// Map node data to elements
+		// We can interpolate from points to points, so target can either be nodal points or gauss points, not "element"		
+		// TODO: does anything point to this map or is it looked up by name? does it matter if we change storage?
+		delete elemMap; // delete existing
+		elemMap = NodeToElemData(fem, dom, nodeMap, mapper, targetFormat);
+		elemMap->SetName(name); // set same name
 
-		feLog("done.\n");
+		// clean up
+		delete mapper;
+
+		feLog("\tDone mapping user map \"%s\".\n", name.c_str());
 	}
 }

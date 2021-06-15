@@ -24,7 +24,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
 #include "stdafx.h"
-#include "FEMMGSolutionMapper.h"
+#include "FEMMGResetMesh.h"
 #include <FECore/FEModel.h>
 #include <FECore/FEMeshTopo.h>
 #include <FECore/FEMesh.h>
@@ -41,54 +41,29 @@ SOFTWARE.*/
 #include "FEDomainShapeInterpolator.h"
 #include <FECore/FECoreKernel.h>
 
-#include <FEBioMech/FEConstPrestrain.h>
 #include <FEBioMech/FEMechModel.h>
 #include <FEBioMech/FERigidBody.h>
 
 //#ifdef HAS_MMG
 #include "mmg/mmg3d/libmmg3d.h"
 
-//
-//Implements remeshing via solution mapping to mitigate mesh distortion.
-//
-//Remeshing here sets both current and reference nodal positions to
-//the positions of the new mesh nodes. Then the strain field of the solution
-//on the old mesh is mapped from the old to the new mesh and used with a
-//prestrain material to account for the displacement not captured by the
-//zeroed node displacements. Further, the nodal displacements are also
-//mapped and accumulated for plotting purposes.
-//
-//Solution mapping works by interpolating results from nodes in the old
-//mesh to either nodes or integration points in the new mesh:
-//1. For integration point variables the solution variables at the nodes
-//of the old mesh is obtained by extrapolating and superpositioning
-//values from the integration points to the nodes.
-//2. Then the location of each point in the new mesh is obtained with
-//respect to the old mesh.
-//3. The variables are then interpolated from the nodes of the old
-//element to the points in the new model.
-//
-//Mapping of integration point data is implemented in FERefineMesh and activated using the map data flag
-//TODO mapping of none nodal fields are diffusive, hence ensure it is only done for elements actually remeshed.
-
-
-class FEMMGSolutionMapper::MMG
+class FEMMGResetMesh::MMG
 {
 public:
-	MMG(FEMMGSolutionMapper* mmgRemesh) : m_mmgRemesh(mmgRemesh) {}
+	MMG(FEMMGResetMesh* mmgRemesh) : m_mmgRemesh(mmgRemesh) {}
 	bool build_mmg_mesh(MMG5_pMesh mmgMesg, MMG5_pSol mmgSol, FEMeshTopo& topo);
 	bool build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, FEModel& fem);
 
 public:
-	FEMMGSolutionMapper*	m_mmgRemesh;
-	std::vector<double>	m_metric;	// refinement metric
+	FEMMGResetMesh*	    m_mmgRemesh;
+	std::vector<double>	m_metric;	    // refinement metric
 	std::vector<int>	m_nodeSetTag;	// surface tags for node sets
 };
 
 //#endif
 
-BEGIN_FECORE_CLASS(FEMMGSolutionMapper, FERefineMesh)
-	ADD_PARAMETER(m_maxiter, "max_iters");
+BEGIN_FECORE_CLASS(FEMMGResetMesh, FEResetMesh)
+	//ADD_PARAMETER(m_maxiter, "max_iters");
 	ADD_PARAMETER(m_hmin, "min_element_size");
 	ADD_PARAMETER(m_hausd, "hausdorff");
 	ADD_PARAMETER(m_hgrad, "gradation");
@@ -99,7 +74,7 @@ BEGIN_FECORE_CLASS(FEMMGSolutionMapper, FERefineMesh)
 	ADD_PROPERTY(m_sfunc, "size_function", 0);
 END_FECORE_CLASS();
 
-FEMMGSolutionMapper::FEMMGSolutionMapper(FEModel* fem) : FERefineMesh(fem)
+FEMMGResetMesh::FEMMGResetMesh(FEModel* fem) : FEResetMesh(fem)
 {
 
 	m_bremesh = true;
@@ -126,11 +101,11 @@ FEMMGSolutionMapper::FEMMGSolutionMapper(FEModel* fem) : FERefineMesh(fem)
 	m_atol = 0.01;
 
 //#ifdef HAS_MMG
-	mmg = new FEMMGSolutionMapper::MMG(this);
+	mmg = new FEMMGResetMesh::MMG(this);
 //#endif
 }
 
-bool FEMMGSolutionMapper::Init()
+bool FEMMGResetMesh::Init()
 {
 
 	FEModel& fem = *GetFEModel();
@@ -142,7 +117,10 @@ bool FEMMGSolutionMapper::Init()
 		return false;
 	}
 
-	if (FERefineMesh::Init() == false) {
+	// set tolerance
+	m_atol = 1.1 * m_hausd;
+
+	if (FEResetMesh::Init() == false) {
 		printf("Failed in FERefineMesh::Init()\n");
 		return false;
 	}
@@ -150,53 +128,7 @@ bool FEMMGSolutionMapper::Init()
 
 }
 
-bool FEMMGSolutionMapper::Apply(int iteration)
-{
-
-	m_atol = 1.1 * m_hausd;
-
-	FEModel& fem = *GetFEModel();
-
-	FEMesh& mesh = fem.GetMesh();
-
-	string name = "F0_map";
-
-	// get custom data map used to store (pre)strain (deformation gradient)
-	FEDomainMap* oldMap = dynamic_cast<FEDomainMap*>(mesh.FindDataMap(name)); // returns a copy of the pointer, so if it is changed it is not stored :(
-	assert(oldMap);
-
-	// create backup
-	FEDomainMap backupMap = *oldMap;
-
-	if (iteration == 0) {
-
-		// create new map
-		FEDomainMap newMap = FEDomainMap(FE_MAT3D, FMT_MATPOINTS); 
-		newMap.Create(GetElementSet());
-		newMap.SetName(name);
-
-		//compute strain and add to prestrain for prestrain materials
-		assert(GenerateGradients(newMap));
-
-		// replace
-		*oldMap = newMap;  // avoid pointer nightmare use copy method		
-
-	}
-
-	if (FERefineMesh::Apply(iteration)) {
-		return true;
-	}
-	else {
-		// restore
-		*oldMap = backupMap;
-		return false;
-	}
-
-
-
-}
-
-bool FEMMGSolutionMapper::RefineMesh()
+bool FEMMGResetMesh::ResetMesh()
 {
 
 //#ifdef HAS_MMG
@@ -279,7 +211,7 @@ bool FEMMGSolutionMapper::RefineMesh()
 
 //#ifdef HAS_MMG
 
-bool FEMMGSolutionMapper::MMG::build_mmg_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, FEMeshTopo& topo)
+bool FEMMGResetMesh::MMG::build_mmg_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, FEMeshTopo& topo)
 {
 
 	FEMesh& mesh = *topo.GetMesh();
@@ -309,11 +241,11 @@ bool FEMMGSolutionMapper::MMG::build_mmg_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgS
 
 	// set the vertex coordinates
 	// From https://www.mmgtools.org/about-references :
-	// Input point references are preserved 
+	// "Input point references are preserved 
 	// (thus, collapse between points with different refs may be refused). 
 	// Moreover, new points are created with the ref 0, so if you don’t    (hjs; seems that if the new nodes are located at referenced surfaces they are given surface reference as point reference)
 	// use point references, it is better to set it to 0.
-	// check for nodes attached to rigid bodies
+	// check for nodes attached to rigid bodies"
 	FENodeList nodeList = elset->GetNodeList();  // get list of nodes in elements adapted
 	int remeshed = 0;
 	int not_remeshed = 0;
@@ -562,7 +494,7 @@ bool FEMMGSolutionMapper::MMG::build_mmg_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgS
 	return true;
 }
 
-bool FEMMGSolutionMapper::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, FEModel& fem)
+bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, FEModel& fem)
 {
 
 	FEMesh& mesh = fem.GetMesh();
@@ -922,44 +854,3 @@ bool FEMMGSolutionMapper::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgS
 }
 
 //#endif
-
-bool FEMMGSolutionMapper::GenerateGradients(FEDomainMap& map)
-{
-	const FEElementSet& set = *map.GetElementSet();
-
-	FEMesh& mesh = *set.GetMesh();
-
-	FEDataType dataType = map.DataType();
-	if (dataType != FE_MAT3D) return false;
-
-	int storageFormat = map.StorageFormat();
-	if (storageFormat != FMT_MATPOINTS) return false;
-
-	// get the domain of the set, works only for a single domain
-	const FEDomainList& domainList = set.GetDomainList();
-	if (domainList.Domains() != 1) return false;
-	FESolidDomain& dom = const_cast<FESolidDomain&>(dynamic_cast<const FESolidDomain&>(*domainList.GetDomain(0)));  
-	// developers should make methods const whenever possible, so const_cast is not neccesary
-	// TODO check valid domain
-
-	// loop all elements compute deformation gradients in integration points and multiply existing prestrain gradient, then store in map
-	int N = set.Elements();
-	for (int i = 0; i < N; ++i)
-	{
-		FESolidElement* pel = dynamic_cast<FESolidElement*>(mesh.FindElementFromID(set[i]));
-		if (pel == nullptr) return false;
-		FESolidElement& el = *pel;
-
-		int ni = el.GaussPoints();
-		for (int j = 0; j < ni; ++j)
-		{
-			FEPrestrainMaterialPoint* pp = dynamic_cast<FEPrestrainMaterialPoint*>(el.GetMaterialPoint(j));
-			assert(pp);
-			mat3d F0 = pp->initialPrestrain();  // initial prestrain, do not include correction
-			mat3d F; 
-			dom.defgrad(el, F, j);  // compute deformation gradient from current mesh displacement relative to reference
-			map.setValue(i, j, F*F0);  // product, notice if F0=I, then after remesh 1 you get F*F0=F as intended
-		}
-	}
-	return true;
-}

@@ -25,22 +25,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
 #pragma once
 #include <vector>
-#include "FERefineMesh.h"
+#include "FEResetMesh.h"
 #include <FECore/FEFunction1D.h>
 #include <FECore/FEModelParam.h>
 #include <FECore/FESolidElement.h>
 #include <FECore/FEDomainMap.h>
 
-class FEMMGSolutionMapper : public FERefineMesh
+class FEMMGResetMesh : public FEResetMesh
 {
 	class MMG;
 
 public:
-	FEMMGSolutionMapper(FEModel* fem);
+	FEMMGResetMesh(FEModel* fem);
 
 	bool Init() override;
-	bool RefineMesh() override;
-	bool Apply(int) override;
+	bool ResetMesh() override;
 
 private:
 	FEMeshAdaptorCriterion* GetCriterion() { return m_criterion; }
@@ -58,7 +57,7 @@ private:
 	double	m_hausd;	// Hausdorff value
 	double	m_hgrad;	// gradation
 
-	int m_attachedRid;  // adapted selected contains nodes attached to this rigid body id, we support only a single and subtract rigid body motion as r0 = rt - (R v + t)
+	int m_attachedRid;  // adapted selection contains nodes attached to this rigid body id, we support only a single and subtract rigid body motion
 
 	FEMeshAdaptorCriterion*	m_criterion;
 
@@ -67,8 +66,6 @@ private:
 	MMG*	mmg;
 
 	friend class MMG;
-
-	bool GenerateGradients(FEDomainMap& map);
 
 	DECLARE_FECORE_CLASS();
 };

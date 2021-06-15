@@ -390,10 +390,7 @@ bool FEOctreeSearch::Init()
 FEElement* FEOctreeSearch::FindElement(const vec3d& x, double r[3])
 {
 	std::pair<FEElement*, double> elemWithMinDist = m_root->FindElement(x, r, std::make_pair(nullptr, 1e6));
-
-	if (elemWithMinDist.second < m_geom_atol)
-		return elemWithMinDist.first;
-	else {
+	if (elemWithMinDist.second > m_geom_atol) {
 		printf("Error in FindElement\n");
 		printf("For point : (%f,%f,%f)\n", x.x, x.y, x.z);
 		printf("Distance to closest element found: %f above tolerance %f\n", elemWithMinDist.second, m_geom_atol);
@@ -402,8 +399,7 @@ FEElement* FEOctreeSearch::FindElement(const vec3d& x, double r[3])
 			vec3d nx = m_mesh->Node(elemWithMinDist.first->m_node[j]).m_rt;
 			printf("Elem node %d : (%f,%f,%f)\n", nx.x, nx.y, nx.z);
 		}
-
 	}
+	return elemWithMinDist.first;
 
-		return nullptr;
 }

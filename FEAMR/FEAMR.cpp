@@ -37,6 +37,7 @@ SOFTWARE.*/
 #include "FEElementSelectionCriterion.h"
 #include "FEScaleAdaptorCriterion.h"
 #include "FEFilterAdaptorCriterion.h"
+#include "FEFixedTimeCriterion.h"
 #include "FEDomainErrorCriterion.h"
 
 //-----------------------------------------------------------------------------
@@ -56,5 +57,5 @@ REGISTER_FECORE_CLASS(FEVariableCriterion        , "max_variable");
 REGISTER_FECORE_CLASS(FEElementSelectionCriterion, "element_selection");
 REGISTER_FECORE_CLASS(FEScaleAdaptorCriterion    , "math");
 REGISTER_FECORE_CLASS(FEMinMaxFilterAdaptorCriterion, "min-max filter");
-REGISTER_FECORE_CLASS(FEDomainErrorCriterion, "relative error");
-}
+REGISTER_FECORE_CLASS(FEDomainErrorCriterion     , "relative error");
+}REGISTER_FECORE_CLASS(FEFixedTimeCriterion      , "fixed dt");

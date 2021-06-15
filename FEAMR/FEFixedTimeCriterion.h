@@ -24,46 +24,20 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
 #pragma once
-#include "FEMeshDataInterpolator.h"
+#include <FECore/FEMeshAdaptorCriterion.h>
 
-class FEDomain;
-class FESolidElement;
-class FEMesh;
-class FEOctreeSearch;
-
-//! Maps data by using element shape functions
-class FEDomainShapeInterpolator : public FEMeshDataInterpolator
+//-----------------------------------------------------------------------------
+// returns selection if (t - m_tp) > dt else empty
+class FEFixedTimeCriterion : public FEMeshAdaptorCriterion
 {
-	struct Data
-	{
-		FESolidElement*		el;
-		double				r[3];
-	};
-
 public:
-	FEDomainShapeInterpolator(FEDomain* domain, bool current = false, double atol = 1e-3);
-	~FEDomainShapeInterpolator();
-
-	bool Init() override;
-
-	void SetTargetPoints(const vector<vec3d>& trgPoints);
-	bool SetTargetPoint(const vec3d& r) override;
-
-	bool Map(std::vector<double>& tval, function<double(int sourceNode)> src) override;
-
-	double Map(int inode, function<double(int sourceNode)> src) override;
-	vec3d MapVec3d(int inode, function<vec3d(int sourceNode)> src) override;
+	FEFixedTimeCriterion(FEModel* fem);
+	FEMeshAdaptorSelection GetElementSelection(FEElementSet* elset) override;
 
 private:
-	FEDomain*	m_dom;
-	FEMesh*	m_mesh;
+	double	m_dt;     // requested time between remeshing
+	double  m_tp;     // time at last remeshing
+	double  m_value;  // uniform value of metric
 
-	FEOctreeSearch*	m_os;
-	vector<vec3d>	m_trgPoints;
-	vector<Data>	m_data;
-
-	bool            m_current;
-	double          m_atol;
-
+	DECLARE_FECORE_CLASS();
 };
-

@@ -27,8 +27,11 @@ SOFTWARE.*/
 #include <FECore/FESolidDomain.h>
 #include <FECore/FEOctreeSearch.h>
 
-FEDomainShapeInterpolator::FEDomainShapeInterpolator(FEDomain* domain)
+FEDomainShapeInterpolator::FEDomainShapeInterpolator(FEDomain* domain, bool current, double atol)
 {
+	m_current = current;
+	m_atol = atol;
+
 	m_dom = domain;
 	m_mesh = m_dom->GetMesh();
 	m_os = nullptr;
@@ -45,6 +48,8 @@ bool FEDomainShapeInterpolator::Init()
 
 	if (m_os == nullptr)
 	{
+		FEOctreeSearch::m_current = true;
+		FEOctreeSearch::m_geom_atol = m_atol;
 		m_os = new FEOctreeSearch(m_dom);
 		if (m_os->Init() == false) return false;
 	}
@@ -61,6 +66,7 @@ bool FEDomainShapeInterpolator::Init()
 		di.el = (FESolidElement*)m_os->FindElement(ri, di.r);
 		if (di.el == nullptr)
 		{
+			printf("Unable to find element of trgPoint %d at (%f,%f,%f)\n", i, ri.x, ri.y, ri.z);
 			assert(false);
 			return false;
 		}

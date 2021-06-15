@@ -61,8 +61,6 @@ bool FEMeshShapeInterpolator::Init()
 		Data& di = m_data[i];
 		vec3d ri = m_trgPoints[i];
 
-		printf("Searching for trgPoint %d at (%f,%f,%f)\n", i, ri.x, ri.y, ri.z);
-
 		// find the element
 		// TODO add tolerances
 		di.r[0] = di.r[1] = di.r[2] = 0.0;

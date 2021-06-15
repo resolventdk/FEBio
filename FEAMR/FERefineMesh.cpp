@@ -64,6 +64,8 @@ FERefineMesh::FERefineMesh(FEModel* fem) : FEMeshAdaptor(fem), m_topo(nullptr)
 
 	m_maxiter = -1;
 	m_maxelem = -1;
+
+	m_bmap_current = false; // do not use current mesh configuration for mapping
 }
 
 FERefineMesh::~FERefineMesh()
@@ -902,7 +904,7 @@ void FERefineMesh::TransferDomainMapData()
 				vector<vec3d> srcPoints; srcPoints.reserve(oldDomain.Nodes());
 				for (int i = 0; i < oldDomain.Nodes(); ++i)
 				{
-					vec3d r = oldDomain.Node(i).m_r0;
+					vec3d r = m_bmap_current ? oldDomain.Node(i).m_rt : oldDomain.Node(i).m_r0;
 					srcPoints.push_back(r);
 				}
 
@@ -915,7 +917,7 @@ void FERefineMesh::TransferDomainMapData()
 					for (int j = 0; j < nint; ++j)
 					{
 						FEMaterialPoint& mp = *el.GetMaterialPoint(j);
-						vec3d r = mp.m_r0;
+						vec3d r = m_bmap_current ? mp.m_rt : mp.m_r0;
 						trgPoints.push_back(r);
 					}
 				}
@@ -1056,7 +1058,7 @@ void FERefineMesh::TransferUserMapData()
 		for (int i = 0; i < oldNodeList.Size(); ++i)
 		{
 			FENode& oldNode_i = oldMesh->Node(oldNodeList[i]);
-			vec3d r = oldNode_i.m_r0;
+			vec3d r = m_bmap_current ? oldNode_i.m_rt : oldNode_i.m_r0;
 			srcPoints[i] = r;
 		}
 
@@ -1071,12 +1073,19 @@ void FERefineMesh::TransferUserMapData()
 			{
 				FEElement& el = dom.ElementRef(n);
 				int nint = el.GaussPoints();
-				for (int l = 0; l < nint; ++l)
-				{
-					FEMaterialPoint& mp = *el.GetMaterialPoint(l);
-					vec3d r = mp.m_r0;
-					trgPoints.push_back(r);
+
+				// get element node coordinates
+				vec3d r[FEElement::MAX_NODES];
+				if (m_bmap_current) {
+					for (int i = 0; i < el.Nodes(); ++i) r[i] = mesh.Node(el.m_node[i]).m_rt;  // this is not updated at material point
 				}
+				else {
+					for (int i = 0; i < el.Nodes(); ++i) r[i] = mesh.Node(el.m_node[i]).m_r0;  // this could be taken from material point
+				}
+
+				// store material point coordinate
+				for (int l = 0; l < nint; ++l) trgPoints.push_back(el.Evaluate(r, l));
+
 			}
 			break;
 		case Storage_Fmt::FMT_MULT:
@@ -1087,7 +1096,7 @@ void FERefineMesh::TransferUserMapData()
 				int ne = el.Nodes();
 				for (int l = 0; l < ne; ++l)
 				{
-					vec3d r = mesh.Node(el.m_node[l]).m_r0;
+					vec3d r = m_bmap_current ? mesh.Node(el.m_node[l]).m_rt : mesh.Node(el.m_node[l]).m_r0;
 					trgPoints.push_back(r);
 				}
 			}
@@ -1101,7 +1110,7 @@ void FERefineMesh::TransferUserMapData()
 		case TRANSFER_SHAPE:
 		{
 			FEDomain* oldDomain = m_meshCopy->FindDomain(dom.GetName());
-			FEDomainShapeInterpolator* dsm = new FEDomainShapeInterpolator(oldDomain);
+			FEDomainShapeInterpolator* dsm = new FEDomainShapeInterpolator(oldDomain, m_bmap_current, m_atol);
 			dsm->SetTargetPoints(trgPoints);
 			mapper = dsm;
 		}

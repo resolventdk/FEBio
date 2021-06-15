@@ -23,47 +23,37 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
-#pragma once
-#include "FEMeshDataInterpolator.h"
+#include "stdafx.h"
+#include "FEFixedTimeCriterion.h"
+#include <FECore/FEModel.h>
 
-class FEDomain;
-class FESolidElement;
-class FEMesh;
-class FEOctreeSearch;
+BEGIN_FECORE_CLASS(FEFixedTimeCriterion, FEMeshAdaptorCriterion)
+	ADD_PARAMETER(m_dt, "dt");  // how often to remesh
+    ADD_PARAMETER(m_value, "value");  // scale of adaption
+END_FECORE_CLASS();
 
-//! Maps data by using element shape functions
-class FEDomainShapeInterpolator : public FEMeshDataInterpolator
+FEFixedTimeCriterion::FEFixedTimeCriterion(FEModel* fem) : FEMeshAdaptorCriterion(fem)
 {
-	struct Data
-	{
-		FESolidElement*		el;
-		double				r[3];
-	};
+	m_tp = 0.0;
+	m_value = 1.0;
+}
 
-public:
-	FEDomainShapeInterpolator(FEDomain* domain, bool current = false, double atol = 1e-3);
-	~FEDomainShapeInterpolator();
+FEMeshAdaptorSelection FEFixedTimeCriterion::GetElementSelection(FEElementSet* elemSet)
+{
 
-	bool Init() override;
+	FEMesh& mesh = GetFEModel()->GetMesh();
 
-	void SetTargetPoints(const vector<vec3d>& trgPoints);
-	bool SetTargetPoint(const vec3d& r) override;
-
-	bool Map(std::vector<double>& tval, function<double(int sourceNode)> src) override;
-
-	double Map(int inode, function<double(int sourceNode)> src) override;
-	vec3d MapVec3d(int inode, function<vec3d(int sourceNode)> src) override;
-
-private:
-	FEDomain*	m_dom;
-	FEMesh*	m_mesh;
-
-	FEOctreeSearch*	m_os;
-	vector<vec3d>	m_trgPoints;
-	vector<Data>	m_data;
-
-	bool            m_current;
-	double          m_atol;
-
-};
-
+	double time = GetFEModel()->GetTime().currentTime;
+	
+	FEMeshAdaptorSelection elemList;	
+	if ((time - m_tp) > (m_dt - 1e-6)) {  // if time between remeshes has passed
+		// add elements to selection and set scale value
+		m_tp = time; // update time				
+		for (FEElementIterator it(&mesh, elemSet); it.isValid(); ++it)
+		{
+			FEElement& el = *it;
+			if (el.isActive()) elemList.push_back(el.GetID(), m_value);
+		}
+	}
+	return elemList;
+}

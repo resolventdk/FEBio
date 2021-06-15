@@ -86,6 +86,9 @@ protected:
 	int		m_nnc;					//!< nearest-neighbor-count for MLQ transfer method
 	int		m_nsdim;				//!< nearest-neighbor search dimension (2 or 3)
 
+	bool m_bmap_current;  // map field using current mesh configuration
+	double m_atol;  // absolute geometric tolerance
+
 	FEMesh*	m_meshCopy;		//!< copy of "old" mesh, before refinement
 
 	std::vector< std::vector<FEDomainMap*> >	m_domainMapList;	// list of nodal data for each domain

@@ -56,9 +56,11 @@ public:
 
 private:
 	FEMesh*	m_mesh;
+
 	FEOctreeSearch*	m_os;
 	vector<vec3d>	m_trgPoints;
 	vector<Data>	m_data;
+
 	bool            m_current;
 	double          m_atol;
 };

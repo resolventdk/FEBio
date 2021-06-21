@@ -58,6 +58,7 @@ public:
 	FEMMGResetMesh*	    m_mmgRemesh;
 	std::vector<double>	m_metric;	    // refinement metric
 	std::vector<int>	m_nodeSetTag;	// surface tags for node sets
+	std::vector<int>    m_surfSetTag;   // unique surface tags
 };
 
 //#endif
@@ -247,23 +248,12 @@ bool FEMMGResetMesh::MMG::build_mmg_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 	// use point references, it is better to set it to 0.
 	// check for nodes attached to rigid bodies"
 	FENodeList nodeList = elset->GetNodeList();  // get list of nodes in elements adapted
-	int remeshed = 0;
-	int not_remeshed = 0;
 	for (int i = 0; i < NN; ++i)
 	{
 		FENode& vi = mesh.Node(i);
 		vec3d r = vi.m_rt;
-		if (nodeList.GlobalToLocalID(i) != -1) {  // points that might be remeshed --> if 0 their will get random id if not remeshed
-			MMG3D_Set_vertex(mmgMesh, r.x, r.y, r.z, 999, i + 1);  
-			remeshed++;
-		}
-		else {
-			MMG3D_Set_vertex(mmgMesh, r.x, r.y, r.z, 1000 + i, i + 1);  // set reference to 1000 + node id
-			not_remeshed++;
-		}
-		
+		MMG3D_Set_vertex(mmgMesh, r.x, r.y, r.z, m_mmgRemesh->m_nid_offset + i, i + 1);  // set reference to offset (e.g. 1000) + node id
 	}
-	printf("To be remeshed, not to be remeshed: %d, %d\n", remeshed, not_remeshed);
 
 	// set the tetrahedra, ref starts from 1
 	int c = 1;
@@ -275,26 +265,44 @@ bool FEMMGResetMesh::MMG::build_mmg_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 		{
 			FEElement& e = dom.ElementRef(j);
 			int* n = &e.m_node[0];
-			MMG3D_Set_tetrahedron(mmgMesh, n[0] + 1, n[1] + 1, n[2] + 1, n[3] + 1, i+1, c);
+			MMG3D_Set_tetrahedron(mmgMesh, n[0] + 1, n[1] + 1, n[2] + 1, n[3] + 1, i + 1, c);
 		}
+	}
+
+	// first create a list of surface names 
+	// because surfaces are duplicated whenever referenced in a surface?/contact?-pair  
+	std::vector<std::string> names;
+	for (int i = 0; i < mesh.Surfaces(); ++i)
+		names.push_back(mesh.Surface(i).GetName());
+
+	// find unique names
+	std::vector<std::string> unique_names;
+	std::sort(names.begin(), names.end());  // need to be sorted before using unique
+	std::unique_copy(names.begin(), names.end(), std::back_inserter(unique_names));
+
+	// set surface tags
+	m_surfSetTag.assign(mesh.Surfaces(), -1);
+	for (int i = 0; i < mesh.Surfaces(); ++i) {
+		std::vector<std::string>::const_iterator it = std::find(unique_names.begin(), unique_names.end(), mesh.Surface(i).GetName());
+		int index = it - unique_names.begin();
+		m_surfSetTag[i] = index + 1;
 	}
 
 	// set the facet markers
 	vector<int> faceMarker(NF, 0);
-
-	int faceMark = 1;
 	for (int i = 0; i < mesh.Surfaces(); ++i)
 	{
 		FESurface& surf = mesh.Surface(i);
+		printf("Assigning surf %s ref %d\n", surf.GetName().c_str(), m_surfSetTag[i]);
 		vector<int> faceIndexList = topo.SurfaceFaceIndexList(surf);
 		for (int j = 0; j < faceIndexList.size(); ++j)
 		{
-			faceMarker[faceIndexList[j]] = faceMark;
+			faceMarker[faceIndexList[j]] = m_surfSetTag[i];
 		}
-		faceMark++;
 	}
 
 	// for node sets we are going to create artificial surfaces
+	int faceMark = unique_names.size() + 1;
 	m_nodeSetTag.assign(mesh.NodeSets(), -1);
 	for (int i = 0; i < mesh.NodeSets(); ++i)
 	{
@@ -507,6 +515,7 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 		printf("Current implementation limited to adapting a single domain only!\n");
 		return false;  // 
 	}
+	FENodeList oldNodeList = oldElset->GetNodeList();  // get list of nodes in elements adapted
 	FEDomain& remeshedDom = const_cast<FEDomain&>(*domainList.GetDomain(0));
 
 	// get the new mesh sizes
@@ -538,9 +547,9 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 	vector<vec3d> nodeAccel(nodes);
 	vector<vector<double> > nodeVal(nodes, vector<double>(MAX_DOFS, 0.0));
 
-	// allocate data mapper
+	// Allocate data mapper --> use a domain mapper:
 	// In case of contact problems the domains may overlap.
-	// So if we do not map/interpolate domains seperately errors occur in the overlapping regions when a point is mapped to the wrong domain.
+	// So if we do not map/interpolate domains seperately, errors occur in the overlapping regions when a point is mapped to the wrong domain.
 	// TODO: we still get problems if domain is self overlapping, so be careful.
 	FEMeshDataInterpolator* mapper = nullptr;
 	switch (m_mmgRemesh->m_transferMethod)
@@ -561,12 +570,22 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 	}
 
 	// map nodal positions and nodal data
+	int unmodified_count = 0;
+	int modified_count = 0;
 	for (int i = 0; i < nodes; ++i)
 	{
 		vec3d ri = newNodePos[i];
-		int old_nid = newNodeRef[i] - 1000; // TODO use m_offset
+		int old_nid = newNodeRef[i] - m_mmgRemesh->m_nid_offset;  // all old_nid < 0 is new nodes
 
-		if (old_nid >= 0) {  // existing node --> copy directly from old mesh
+		// even if a point preserves its reference it may still be displaced
+		if (old_nid >= 0 && oldNodeList.GlobalToLocalID(old_nid) == -1) {  // existing node not in selection --> copy directly from old mesh
+			unmodified_count++;
+
+			// double check
+			double error = (newNodePos[i] - mesh.Node(old_nid).m_rt).norm();
+			if (error > 1e-6) {
+				printf("Warning: 'unmodified' node %d-->%d moved %f\n", old_nid, i, error);
+			}
 
 			// get the nodal displacement
 			nodeDispl[i] = mesh.Node(old_nid).m_rt - mesh.Node(old_nid).m_r0;
@@ -579,6 +598,7 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 				nodeVal[i][l] = mesh.Node(old_nid).get(l);
 
 		} else {  // new node --> use interpolation
+			modified_count++;
 
 			if (mapper->SetTargetPoint(ri) == false)
 			{
@@ -611,12 +631,10 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 	} // i in nodes
 	delete mapper;
 
+	printf("-- MMG mesh consists of:\n%d modified points\n%d unmodified points\n", modified_count, unmodified_count);
+
 	// reallocate nodes
 	mesh.CreateNodes(nodes);
-
-	int zeros = 0;
-	int remeshed = 0;
-	int not_remeshed = 0;
 
 	// assign dofs to new nodes. hjs TODO check dofs exists
 	const int dof_X = fem.GetFEModel()->GetDOFIndex("x");
@@ -632,18 +650,14 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 		rotInv = RB->GetRotation().Inverse();
 	}
 
+	// set current and reference nodal coordinates (and dofs and accelerations)
 	for (int i = 0; i < nodes; ++i)
 	{
 		FENode& node = mesh.Node(i);
 		node.SetDOFS(MAX_DOFS);
+		int old_nid = newNodeRef[i] - m_mmgRemesh->m_nid_offset;  // all old_nid < 0 is new nodes 
 
-		if (i == 0) printf("not renumbering nid %d -> %d\n", node.GetID(), i);
-
-		if (newNodeRef[i] == 0)
-			zeros++;
-
-		if (newNodeRef[i] < 1000) { // remeshed -> deformation should be reset
-			remeshed++;
+		if (old_nid < 0 || oldNodeList.GlobalToLocalID(old_nid) != -1) {  // either new node old_id < 0 or existing node in selection
 
 			node.m_r0 = node.m_rt = newNodePos[i];  // hjs; reset deformation
 			node.m_at = nodeAccel[i];
@@ -657,9 +671,9 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 			node.set(dof_Y, 0.0);
 			node.set(dof_Z, 0.0);
 
-
 			// If any nodes in remeshed selection is attached to a rigid body
-			// do not subtract the rigid body motion, which would then be added twice because of the implementation in FERigidSystem.cpp
+			// do not subtract the rigid body motion, which would then be added 
+			// twice because of the implementation in FERigidSystem.cpp
 			if (m_mmgRemesh->m_attachedRid >= 0) 
 			{ 
 				node.m_r0 = rotInv * (node.m_rt - RB->m_rt) + RB->m_r0;
@@ -675,8 +689,7 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 				node.set(dof_Z, 0.0);
 			}
 
-		} else {  // not remeshed -> deformation should NOT be reset
-			not_remeshed++;
+		} else {  // existing node not in selection -> deformation should NOT be reset
 			node.m_rt = newNodePos[i];
 			node.m_r0 = newNodePos[i] - nodeDispl[i]; // TODO use dof_X,Y,Z
 			node.m_at = nodeAccel[i];
@@ -689,7 +702,6 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 		// update
 		node.UpdateValues();
 	}
-	printf("remeshed, not remeshed, zeros: %d, %d, %d\n", remeshed, not_remeshed, zeros);
 
 	// recreate domains
 	int eID = 1;
@@ -748,27 +760,13 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 		eset.Create(domList);
 	}
 
-	// get the element set that may be remeshed
-	FEElementSet* elset = m_mmgRemesh->GetElementSet();
-	FENodeList nodeList = elset->GetNodeList();  // get list of nodes in elements adapted
-	for (int i = 0; i < nodes; ++i)
-	{
-		if (nodeList.GlobalToLocalID(i) != -1) {  // points that might be remeshed --> if 0 their will get random id if not remeshed
-			if (newNodeRef[i] >= 1000)
-				printf("Error in vertex reference for remeshed domain: ref=%d\n", newNodeRef[i]);
-		}
-		else {
-			if (newNodeRef[i] < 1000)
-				printf("Error in vertex reference for not remeshed domain: ref=%d\n", newNodeRef[i]);
-		}
-	}
-
 	// recreate surfaces
-	int faceMark = 1;
+
 	for (int i = 0; i < mesh.Surfaces(); ++i)
 	{
+		int faceMark = m_surfSetTag[i];
 		FESurface& surf = mesh.Surface(i);
-
+		printf("Recreating surf %s with ref %d\n", surf.GetName().c_str(), faceMark);
 		// count faces
 		int nfaces = 0;
 		for (int j = 0; j < faces; ++j)
@@ -804,7 +802,6 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 			fset->Create(surf);
 		}
 
-		faceMark++;
 	}
 
 	// update nodesets
@@ -836,7 +833,6 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 				nset.Add(nodeList);
 			}
 
-			faceMark++;
 		}
 		else
 		{

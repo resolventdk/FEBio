@@ -663,6 +663,7 @@ void FEBioMech::InitModule()
 	REGISTER_FECORE_CLASS(FEPlotRigidEuler, "Euler angle");
 	REGISTER_FECORE_CLASS(FEPlotRigidRotationVector, "rigid rotation vector");
 	REGISTER_FECORE_CLASS(FEPlotStressError, "stress error");
+	REGISTER_FECORE_CLASS(FEPlotQuality, "quality");
 	REGISTER_FECORE_CLASS(FEPlotFiberTargetStretch, "in-situ target stretch");
 	REGISTER_FECORE_CLASS(FEPlotPreStrainStretch, "prestrain stretch");
 	REGISTER_FECORE_CLASS(FEPlotPreStrainStretchError, "prestrain stretch error");

@@ -37,25 +37,31 @@ SOFTWARE.*/
 #include "FEElementSelectionCriterion.h"
 #include "FEScaleAdaptorCriterion.h"
 #include "FEFilterAdaptorCriterion.h"
-#include "FEFixedTimeCriterion.h"
 #include "FEDomainErrorCriterion.h"
+
+#include "FEFixedTimeCriterion.h"
+#include "FEQualityCriterion.h"
+#include "FEAnyCriterion.h"
 
 //-----------------------------------------------------------------------------
 void FEAMR::InitModule()
 {
-// mesh adaptors
-REGISTER_FECORE_CLASS(FEErosionAdaptor, "erosion");
-REGISTER_FECORE_CLASS(FEHexRefine     , "hex_refine");
-REGISTER_FECORE_CLASS(FEHexRefine2D   , "hex_refine2d");
-REGISTER_FECORE_CLASS(FETetRefine     , "tet_refine");
-REGISTER_FECORE_CLASS(FEMMGRemesh     , "mmg_remesh");
-REGISTER_FECORE_CLASS(FEMMGResetMesh  , "mmg_reset");
-REGISTER_FECORE_CLASS(FETestRefine    , "test_refine");
+	// mesh adaptors
+	REGISTER_FECORE_CLASS(FEErosionAdaptor, "erosion");
+	REGISTER_FECORE_CLASS(FEHexRefine, "hex_refine");
+	REGISTER_FECORE_CLASS(FEHexRefine2D, "hex_refine2d");
+	REGISTER_FECORE_CLASS(FETetRefine, "tet_refine");
+	REGISTER_FECORE_CLASS(FEMMGRemesh, "mmg_remesh");
+	REGISTER_FECORE_CLASS(FEMMGResetMesh, "mmg_reset");
+	REGISTER_FECORE_CLASS(FETestRefine, "test_refine");
 
-// adaptor criteria
-REGISTER_FECORE_CLASS(FEVariableCriterion        , "max_variable");
-REGISTER_FECORE_CLASS(FEElementSelectionCriterion, "element_selection");
-REGISTER_FECORE_CLASS(FEScaleAdaptorCriterion    , "math");
-REGISTER_FECORE_CLASS(FEMinMaxFilterAdaptorCriterion, "min-max filter");
-REGISTER_FECORE_CLASS(FEDomainErrorCriterion     , "relative error");
-}REGISTER_FECORE_CLASS(FEFixedTimeCriterion      , "fixed dt");
+	// adaptor criteria
+	REGISTER_FECORE_CLASS(FEVariableCriterion, "max_variable");
+	REGISTER_FECORE_CLASS(FEElementSelectionCriterion, "element_selection");
+	REGISTER_FECORE_CLASS(FEScaleAdaptorCriterion, "math");
+	REGISTER_FECORE_CLASS(FEMinMaxFilterAdaptorCriterion, "min-max filter");
+	REGISTER_FECORE_CLASS(FEDomainErrorCriterion, "relative error");
+	REGISTER_FECORE_CLASS(FEFixedTimeCriterion, "fixed dt");
+	REGISTER_FECORE_CLASS(FEQualityCriterion, "quality");
+	REGISTER_FECORE_CLASS(FEAnyCriterion, "any min-max filter");
+}

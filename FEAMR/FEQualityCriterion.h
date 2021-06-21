@@ -24,49 +24,17 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
 #pragma once
-#include <vector>
-#include "FEResetMesh.h"
-#include <FECore/FEFunction1D.h>
-#include <FECore/FEModelParam.h>
-#include <FECore/FESolidElement.h>
-#include <FECore/FEDomainMap.h>
+#include <FECore/FEMeshAdaptorCriterion.h>
 
-class FEMMGResetMesh : public FEResetMesh
+class FEQualityCriterion : public FEMeshAdaptorCriterion
 {
-	class MMG;
-
 public:
-	FEMMGResetMesh(FEModel* fem);
+	FEQualityCriterion(FEModel* fem);
 
-	bool Init() override;
-	bool ResetMesh() override;
-
-private:
-	FEMeshAdaptorCriterion* GetCriterion() { return m_criterion; }
+	bool GetMaterialPointValue(FEMaterialPoint& mp, double& value) override;
 
 private:
 
-	bool    m_bremesh;  // change the mesh or just reset? 
-
-	int		m_maxiter;
-	bool	m_relativeSize;
-	bool	m_meshCoarsen;
-	bool	m_normalizeData;
-
-	double	m_hmin;		// minimum element size
-	double	m_hausd;	// Hausdorff value
-	double	m_hgrad;	// gradation
-
-	int m_attachedRid;  // adapted selection contains nodes attached to this rigid body id, we support only a single and subtract rigid body motion
-	const int m_nid_offset = 1000;   // mmg point reference offset for to old node ids. Must be out of range of element and surface ids. 
-
-	FEMeshAdaptorCriterion*	m_criterion;
-
-	FEFunction1D*	m_sfunc;	// sizing function
-
-	MMG*	mmg;
-
-	friend class MMG;
-
-	DECLARE_FECORE_CLASS();
+	DECLARE_FECORE_CLASS()
 };
+

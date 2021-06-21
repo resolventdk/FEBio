@@ -845,6 +845,16 @@ public:
 };
 
 //-----------------------------------------------------------------------------
+//! Class that outputs the (inverse) mesh distortion (so it is the quality) in [0;1] 
+class FEPlotQuality : public FEPlotDomainData
+{
+public:
+	FEPlotQuality(FEModel* fem) : FEPlotDomainData(fem, PLT_FLOAT, FMT_ITEM) {}
+	bool Save(FEDomain& dom, FEDataStream& a);
+};
+
+
+//-----------------------------------------------------------------------------
 //! Class that outputs the in-situ fiber stretch
 class FEPlotFiberTargetStretch : public FEPlotDomainData
 {

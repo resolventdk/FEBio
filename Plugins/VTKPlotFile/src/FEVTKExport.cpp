@@ -197,6 +197,9 @@ bool FEVTKExport::AddDomains(vtkSmartPointer<vtkMultiBlockDataSet> multiBlockDat
 				//FE_PENTA15G21,
 				//FE_PYRA5G8,
 				//FE_PYRA13G8,
+			case FE_HEX8RI: vtk_type = VTK_HEXAHEDRON; break;
+			case FE_HEX8G1: vtk_type = VTK_HEXAHEDRON; break;
+			case FE_HEX8G8: vtk_type = VTK_HEXAHEDRON; break;
 			case FE_TET4G1: vtk_type = VTK_TETRA; break;
 			case FE_TET4G4: vtk_type = VTK_TETRA; break;
 			default: printf("Unknown/unsupported volume element type!"); return false;  break;
@@ -496,6 +499,8 @@ bool FEVTKExport::AddSurfaces(vtkSmartPointer<vtkMultiBlockDataSet> multiBlockDa
 				//FE_QUAD8NI,
 				//FE_QUAD9G9,
 				//FE_QUAD9NI,
+			case FE_QUAD4G4: vtk_type = VTK_QUAD; break;
+			case FE_QUAD4NI: vtk_type = VTK_QUAD; break;
 			case FE_TRI3G1: vtk_type = VTK_TRIANGLE; break;
 			case FE_TRI3G3: vtk_type = VTK_TRIANGLE; break;
 			case FE_TRI3G7: vtk_type = VTK_TRIANGLE; break;

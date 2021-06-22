@@ -56,6 +56,7 @@ private:
 	double	m_hmin;		// minimum element size
 	double	m_hausd;	// Hausdorff value
 	double	m_hgrad;	// gradation
+	int	    m_nreg;	    // use normal regularization yes/no 1/0
 
 	int m_attachedRid;  // adapted selection contains nodes attached to this rigid body id, we support only a single and subtract rigid body motion
 	const int m_nid_offset = 1000;   // mmg point reference offset for to old node ids. Must be out of range of element and surface ids. 

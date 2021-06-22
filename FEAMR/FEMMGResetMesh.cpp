@@ -68,6 +68,7 @@ BEGIN_FECORE_CLASS(FEMMGResetMesh, FEResetMesh)
 	ADD_PARAMETER(m_hmin, "min_element_size");
 	ADD_PARAMETER(m_hausd, "hausdorff");
 	ADD_PARAMETER(m_hgrad, "gradation");
+	ADD_PARAMETER(m_nreg, "normal_regularization");
 	ADD_PARAMETER(m_relativeSize, "relative_size");
 	ADD_PARAMETER(m_meshCoarsen, "mesh_coarsen");
 	ADD_PARAMETER(m_normalizeData, "normalize_data");
@@ -89,6 +90,7 @@ FEMMGResetMesh::FEMMGResetMesh(FEModel* fem) : FEResetMesh(fem)
 	m_hmin = 0.0;
 	m_hausd = 0.01;
 	m_hgrad = 1.3;
+	m_nreg = 0;
 
 	m_criterion = nullptr;
 
@@ -167,6 +169,7 @@ bool FEMMGResetMesh::ResetMesh()
 	MMG3D_Set_dparameter(mmgMesh, mmgSol, MMG3D_DPARAM_hmin, m_hmin);
 	MMG3D_Set_dparameter(mmgMesh, mmgSol, MMG3D_DPARAM_hausd, m_hausd);
 	MMG3D_Set_dparameter(mmgMesh, mmgSol, MMG3D_DPARAM_hgrad, m_hgrad);
+	MMG3D_Set_iparameter(mmgMesh, mmgSol, MMG3D_IPARAM_nreg, m_nreg);
 
 	// save mesh for debugging
 	if (MMG3D_saveMshMesh(mmgMesh, mmgSol, "before.msh") == 0)

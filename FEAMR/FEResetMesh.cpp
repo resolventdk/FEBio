@@ -239,7 +239,7 @@ bool FEResetMesh::createNodeDataMap(FEDomain& dom, FEDomainMap* map, FEDomainMap
 		case FMT_MATPOINTS: ni = e.GaussPoints(); break;
 		case FMT_MULT: ni = ne; break;
 		case FMT_ITEM: ni = 1; break;
-		default: printf("Unsupported dataFormat for mapping!\n"); return false;  break;
+		default: feLogError("Unsupported dataFormat for mapping!\n"); return false;  break;
 		}
 
 		for (int j = 0; j < dataSize; ++j)

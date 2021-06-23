@@ -116,7 +116,7 @@ bool FEMMGResetMesh::Init()
 	FEMesh& mesh = fem.GetMesh();
 
 	if (mesh.IsType(ET_TET4) == false) {
-		printf("Mesh is not entirely tets\n");
+		feLogError("Mesh is not entirely tets\n");
 		return false;
 	}
 
@@ -124,7 +124,7 @@ bool FEMMGResetMesh::Init()
 	m_atol = 1.1 * m_hausd;
 
 	if (FEResetMesh::Init() == false) {
-		printf("Failed in FERefineMesh::Init()\n");
+		feLogError("Failed to init FEResetMesh\n");
 		return false;
 	}
 	return true;
@@ -171,11 +171,11 @@ bool FEMMGResetMesh::ResetMesh()
 	MMG3D_Set_dparameter(mmgMesh, mmgSol, MMG3D_DPARAM_hgrad, m_hgrad);
 	MMG3D_Set_iparameter(mmgMesh, mmgSol, MMG3D_IPARAM_nreg, m_nreg);
 
-	// save mesh for debugging
-	if (MMG3D_saveMshMesh(mmgMesh, mmgSol, "before.msh") == 0)
-	{
-		feLogError("Failed to save mmgMesh to .msh file.");
-	}
+	//// save mesh for debugging
+	//if (MMG3D_saveMshMesh(mmgMesh, mmgSol, "before.msh") == 0)
+	//{
+	//	feLogError("Failed to save mmgMesh to .msh file.");
+	//}
 
 	// run the mesher
 	if (m_bremesh) {
@@ -192,11 +192,11 @@ bool FEMMGResetMesh::ResetMesh()
 		}
 	}
 
-	// save mesh for debugging
-	if (MMG3D_saveMshMesh(mmgMesh, mmgSol, "after.msh") == 0)
-	{
-			feLogError("Failed to save mmgMesh to .msh file.");
-	}
+	//// save mesh for debugging
+	//if (MMG3D_saveMshMesh(mmgMesh, mmgSol, "after.msh") == 0)
+	//{
+	//		feLogError("Failed to save mmgMesh to .msh file.");
+	//}
 
 	// build the new mesh
 	bool bret = mmg->build_new_mesh(mmgMesh, mmgSol, fem);
@@ -232,7 +232,7 @@ bool FEMMGResetMesh::MMG::build_mmg_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 	if (criterion == nullptr) return false;
 	FEMeshAdaptorSelection elemList = criterion->GetElementSelection(elset);
 	if (elemList.size() == 0) {
-		printf("empty element list from criterion\n");
+		m_mmgRemesh->GetFEModel()->Logf(2, "empty element list from criterion\n"); // feLogError
 		return false;  // nothing to remesh
 	}
 
@@ -351,7 +351,7 @@ bool FEMMGResetMesh::MMG::build_mmg_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 							}
 							else if (faceMarker[j] != m_nodeSetTag[i])
 							{
-								printf("Non-surface nodeset '%s' encountered, returning...\n", nset.GetName().c_str());
+								m_mmgRemesh->GetFEModel()->Logf(2, "Non-surface nodeset '%s' encountered\n", nset.GetName().c_str());  // feLogError
 								return false;
 							}
 						}
@@ -515,7 +515,7 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 	const FEElementSet* oldElset = m_mmgRemesh->GetElementSet();
 	const FEDomainList& domainList = oldElset->GetDomainList();
 	if (domainList.Domains() != 1) {
-		printf("Current implementation limited to adapting a single domain only!\n");
+		m_mmgRemesh->GetFEModel()->Logf(2, "Current implementation limited to adapting a single domain only!\n");  // feLogError
 		return false;  // 
 	}
 	FENodeList oldNodeList = oldElset->GetNodeList();  // get list of nodes in elements adapted
@@ -587,7 +587,7 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 			// double check
 			double error = (newNodePos[i] - mesh.Node(old_nid).m_rt).norm();
 			if (error > 1e-6) {
-				printf("Warning: 'unmodified' node %d-->%d moved %f\n", old_nid, i, error);
+				m_mmgRemesh->GetFEModel()->Logf(1, "'unmodified' node %d-->%d moved %f\n", old_nid, i, error);  // feLogWarning
 			}
 
 			// get the nodal displacement
@@ -634,7 +634,8 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 	} // i in nodes
 	delete mapper;
 
-	printf("-- MMG mesh consists of:\n%d modified points\n%d unmodified points\n", modified_count, unmodified_count);
+	// print info
+	m_mmgRemesh->GetFEModel()->Logf(0, "-- MMG mesh consists of:\n%d modified points\n%d unmodified points\n", modified_count, unmodified_count);  // feLog
 
 	// reallocate nodes
 	mesh.CreateNodes(nodes);
@@ -730,7 +731,7 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 			if (gid == i+1)
 			{
 				FESolidElement& el = dom.Element(c++);
-				if (eID == 1) printf("renumbering eid %d -> %d\n", el.GetID(), eID);
+				if (eID == 1) m_mmgRemesh->GetFEModel()->Logf(0, "renumbering eid %d -> %d\n", el.GetID(), eID);  // feLog
 				el.SetID(eID++);  // hjs: renumber element ID so that it is consistent with plotfile
 				el.m_node[0] = n[0] - 1;
 				el.m_node[1] = n[1] - 1;
@@ -740,7 +741,7 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 		}
 
 		// re-init domain
-		printf("reiniting domain %s (%d)\n", dom.GetName().c_str(), i);
+		m_mmgRemesh->GetFEModel()->Logf(0, "Re-initing domain %s (%d)\n", dom.GetName().c_str(), i);  // feLog
 		dom.CreateMaterialPointData();
 		dom.Reset();	// NOTE: we need to call this to actually call the Init function on the material points.
 		dom.Init();    // hjs: this where Jacobians of ref mesh is initialised and negative determinants are checked!
@@ -769,7 +770,7 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 	{
 		int faceMark = m_surfSetTag[i];
 		FESurface& surf = mesh.Surface(i);
-		printf("Recreating surf %s with ref %d\n", surf.GetName().c_str(), faceMark);
+		m_mmgRemesh->GetFEModel()->Logf(0, "Re-creating surf %s with ref %d\n", surf.GetName().c_str(), faceMark);  // feLog
 		// count faces
 		int nfaces = 0;
 		for (int j = 0; j < faces; ++j)

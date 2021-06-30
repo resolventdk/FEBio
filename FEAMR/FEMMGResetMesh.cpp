@@ -41,6 +41,7 @@ SOFTWARE.*/
 #include "FEDomainShapeInterpolator.h"
 #include <FECore/FECoreKernel.h>
 
+#include <FECore/FEMaterial.h>
 #include <FEBioMech/FEMechModel.h>
 #include <FEBioMech/FERigidBody.h>
 
@@ -59,6 +60,7 @@ public:
 	std::vector<double>	m_metric;	    // refinement metric
 	std::vector<int>	m_nodeSetTag;	// surface tags for node sets
 	std::vector<int>    m_surfSetTag;   // unique surface tags
+	//std::vector<vec3d>  m_mmgRemesh.m_nodeDispl;    // node displacements before reset
 };
 
 //#endif
@@ -232,7 +234,7 @@ bool FEMMGResetMesh::MMG::build_mmg_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 	if (criterion == nullptr) return false;
 	FEMeshAdaptorSelection elemList = criterion->GetElementSelection(elset);
 	if (elemList.size() == 0) {
-		m_mmgRemesh->GetFEModel()->Logf(2, "empty element list from criterion\n"); // feLogError
+		m_mmgRemesh->GetFEModel()->Logf(0, "Empty element list from criterion\n"); // feLog
 		return false;  // nothing to remesh
 	}
 
@@ -242,6 +244,7 @@ bool FEMMGResetMesh::MMG::build_mmg_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 		assert(false);
 		return false;
 	}
+
 
 	// set the vertex coordinates
 	// From https://www.mmgtools.org/about-references :
@@ -520,6 +523,7 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 	}
 	FENodeList oldNodeList = oldElset->GetNodeList();  // get list of nodes in elements adapted
 	FEDomain& remeshedDom = const_cast<FEDomain&>(*domainList.GetDomain(0));
+	printf("remeshed domain containts num nodes: %d\n", remeshedDom.Nodes());
 
 	// get the new mesh sizes
 	int nodes, elems, faces;
@@ -546,7 +550,8 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 	}
 
 	int MAX_DOFS = fem.GetDOFS().GetTotalDOFS();
-	vector<vec3d> nodeDispl(nodes);
+	//vector<vec3d> nodeDispl(nodes);
+	m_mmgRemesh->m_nodeDispl.resize(nodes);
 	vector<vec3d> nodeAccel(nodes);
 	vector<vector<double> > nodeVal(nodes, vector<double>(MAX_DOFS, 0.0));
 
@@ -557,15 +562,16 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 	FEMeshDataInterpolator* mapper = nullptr;
 	switch (m_mmgRemesh->m_transferMethod)
 	{
-	case TRANSFER_SHAPE: mapper = new FEDomainShapeInterpolator(&remeshedDom, m_mmgRemesh->m_bmap_current, m_mmgRemesh->m_atol); break;
-	case TRANSFER_MLQ:
-	{
-		FELeastSquaresInterpolator* MLQ = new FELeastSquaresInterpolator;
-		MLQ->SetNearestNeighborCount(m_mmgRemesh->m_nnc);
-		MLQ->SetDimension(m_mmgRemesh->m_nsdim);
-		MLQ->SetSourcePoints(oldNodePos); // dont use all nodes
-		mapper = MLQ;
-	}
+	case TRANSFER_SHAPE: mapper = new FEDomainShapeInterpolator(&remeshedDom, m_mmgRemesh->m_bmap_current, m_mmgRemesh->m_atol); break;  // uses local connectivity
+	//case TRANSFER_SHAPE: mapper = new FEMeshShapeInterpolator(&mesh, m_mmgRemesh->m_bmap_current, m_mmgRemesh->m_atol); break;  // uses global connectivity
+	//case TRANSFER_MLQ:
+	//{
+	//	FELeastSquaresInterpolator* MLQ = new FELeastSquaresInterpolator;
+	//	MLQ->SetNearestNeighborCount(m_mmgRemesh->m_nnc);
+	//	MLQ->SetDimension(m_mmgRemesh->m_nsdim);
+	//	MLQ->SetSourcePoints(oldNodePos); // dont use all nodes
+	//	mapper = MLQ;
+	//}
 	break;
 	default:
 		assert(false);
@@ -591,7 +597,7 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 			}
 
 			// get the nodal displacement
-			nodeDispl[i] = mesh.Node(old_nid).m_rt - mesh.Node(old_nid).m_r0;
+			m_mmgRemesh->m_nodeDispl[i] = mesh.Node(old_nid).m_rt - mesh.Node(old_nid).m_r0;
 			
 			// get the nodal acceleration
 			nodeAccel[i] = mesh.Node(old_nid).m_at;
@@ -611,13 +617,13 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 			}
 
 			// get the nodal displacement
-			nodeDispl[i] = mapper->MapVec3d([&mesh](int sourceNode) {
-				return (mesh.Node(sourceNode).m_rt - mesh.Node(sourceNode).m_r0);
+			m_mmgRemesh->m_nodeDispl[i] = mapper->MapVec3d([&remeshedDom](int sourceNode) {
+				return (remeshedDom.Node(sourceNode).m_rt - remeshedDom.Node(sourceNode).m_r0);
 				});
 
 			// get the nodal acceleration
-			nodeAccel[i] = mapper->MapVec3d([&mesh](int sourceNode) {
-				return mesh.Node(sourceNode).m_at;
+			nodeAccel[i] = mapper->MapVec3d([&remeshedDom](int sourceNode) {
+				return remeshedDom.Node(sourceNode).m_at;
 				});
 
 			// no need to map director, which is unit vector orthogonal to shell mid-surface
@@ -625,8 +631,8 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 			// update values
 			for (int l = 0; l < MAX_DOFS; ++l)
 			{
-				nodeVal[i][l] = mapper->Map([&mesh, l](int sourceNode) {
-					return mesh.Node(sourceNode).get(l);
+				nodeVal[i][l] = mapper->Map([&remeshedDom, l](int sourceNode) {
+					return remeshedDom.Node(sourceNode).get(l);
 					});
 			}
 
@@ -654,7 +660,12 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 		rotInv = RB->GetRotation().Inverse();
 	}
 
+	double xmin = 1e37, xmax = -1e37;
+	double ymin = 1e37, ymax = -1e37;
+	double zmin = 1e37, zmax = -1e37;
+
 	// set current and reference nodal coordinates (and dofs and accelerations)
+	int count = 0;
 	for (int i = 0; i < nodes; ++i)
 	{
 		FENode& node = mesh.Node(i);
@@ -662,13 +673,27 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 		int old_nid = newNodeRef[i] - m_mmgRemesh->m_nid_offset;  // all old_nid < 0 is new nodes 
 
 		if (old_nid < 0 || oldNodeList.GlobalToLocalID(old_nid) != -1) {  // either new node old_id < 0 or existing node in selection
-
+			count++;
 			node.m_r0 = node.m_rt = newNodePos[i];  // hjs; reset deformation
+			//node.m_r0 = newNodePos[i] - m_mmgRemesh->m_nodeDispl[i]; // TODO use dof_X,Y,Z
 			node.m_at = nodeAccel[i];
 
 			for (int j = 0; j < node.m_ID.size(); ++j) {
 				node.set(j, nodeVal[i][j]);
 			}
+
+
+			// zero displacement dofs, TODO store somewhere else
+
+			//printf("dof zeroed: %f,%f,%f\n", node.get(dof_X), node.get(dof_Y), node.get(dof_Z));
+			vec3d u = m_mmgRemesh->m_nodeDispl[i];
+			//printf("displacement stored: %f,%f,%f\n", u.x, u.y, u.z);
+			if (u.x < xmin) xmin = u.x;
+			if (u.y < ymin) ymin = u.y;
+			if (u.z < zmin) zmin = u.z;
+			if (u.x > xmax) xmax = u.x;
+			if (u.y > ymax) ymax = u.y;
+			if (u.z > zmax) zmax = u.z;
 
 			// zero displacement dofs, TODO store somewhere else
 			node.set(dof_X, 0.0);
@@ -678,8 +703,10 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 			// If any nodes in remeshed selection is attached to a rigid body
 			// do not subtract the rigid body motion, which would then be added 
 			// twice because of the implementation in FERigidSystem.cpp
-			if (m_mmgRemesh->m_attachedRid >= 0) 
-			{ 
+			// TODO: instead also reset attached rigid bodies, modify connectors
+			if (m_mmgRemesh->m_attachedRid >= 0)
+			{
+				printf("modifying for rigid motion!\n");
 				node.m_r0 = rotInv * (node.m_rt - RB->m_rt) + RB->m_r0;
 
 				node.set(dof_X, node.m_rt.x - node.m_r0.x);
@@ -693,33 +720,37 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 				node.set(dof_Z, 0.0);
 			}
 
-		} else {  // existing node not in selection -> deformation should NOT be reset
+		}
+		else {  // existing node not in selection -> deformation should NOT be reset
 			node.m_rt = newNodePos[i];
-			node.m_r0 = newNodePos[i] - nodeDispl[i]; // TODO use dof_X,Y,Z
+			node.m_r0 = newNodePos[i] - m_mmgRemesh->m_nodeDispl[i]; // TODO use dof_X,Y,Z
 			node.m_at = nodeAccel[i];
 			if (m_mmgRemesh->m_nsdim == 2) node.m_rt.z = node.m_r0.z;
 			for (int j = 0; j < node.m_ID.size(); ++j) {
 				node.set(j, nodeVal[i][j]);
 			}
-		} 
+		}
 
 		// update
 		node.UpdateValues();
-	}
-
+	};
+	
+	printf("displacement ranges\n  x: %f,%f\n  y: %f,%f\n  z: %f,%f\n", xmin, xmax, ymin, ymax, zmin, zmax);
+	printf("count: %d\n", count);
+	
 	// recreate domains
 	int eID = 1;
 	for (int i = 0; i < mesh.Domains(); ++i)
 	{
 		FESolidDomain& dom = dynamic_cast<FESolidDomain&>(mesh.Domain(i));
-
+		FEMaterial* mat = dom.GetMaterial();
 		int nelems = 0;
 		for (int j = 0; j < elems; ++j)
 		{
 			int n[4], gid, breq;
 			MMG3D_Get_tetrahedron(mmgMesh, n, n + 1, n + 2, n + 3, &gid, &breq);
 			if (gid == i+1) nelems++;
-		}
+ 		}
 
 		dom.Create(nelems, dom.GetElementSpec());
 		int c = 0;
@@ -733,6 +764,7 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 				FESolidElement& el = dom.Element(c++);
 				if (eID == 1) m_mmgRemesh->GetFEModel()->Logf(0, "renumbering eid %d -> %d\n", el.GetID(), eID);  // feLog
 				el.SetID(eID++);  // hjs: renumber element ID so that it is consistent with plotfile
+				el.SetMatID(mat->GetID() - 1);  // set the material, id shoulkd start from 0!!!!
 				el.m_node[0] = n[0] - 1;
 				el.m_node[1] = n[1] - 1;
 				el.m_node[2] = n[2] - 1;
@@ -741,7 +773,7 @@ bool FEMMGResetMesh::MMG::build_new_mesh(MMG5_pMesh mmgMesh, MMG5_pSol mmgSol, F
 		}
 
 		// re-init domain
-		m_mmgRemesh->GetFEModel()->Logf(0, "Re-initing domain %s (%d)\n", dom.GetName().c_str(), i);  // feLog
+		m_mmgRemesh->GetFEModel()->Logf(0, "Re-initing domain %s (%d) of material '%s' (id)%d)\n", dom.GetName().c_str(), i, mat->GetName().c_str(), mat->GetID());  // feLog
 		dom.CreateMaterialPointData();
 		dom.Reset();	// NOTE: we need to call this to actually call the Init function on the material points.
 		dom.Init();    // hjs: this where Jacobians of ref mesh is initialised and negative determinants are checked!

@@ -37,6 +37,7 @@ class FESurfacePairConstraint;
 class FESurface;
 class FENodeSet;
 class FEDomainMap;
+class FESolidElement;
 
 //-----------------------------------------------------------------------------
 // 
@@ -112,12 +113,20 @@ protected:
 	bool createNodeDataMap(FEDomain& dom, FEDomainMap* map, FEDomainMap* nodeMap);
 	FEDomainMap* NodeToElemData(FEModel& fem, FEDomain& dom, FEDomainMap* nodeMap, FEMeshDataInterpolator* dataMapper, Storage_Fmt dataFormat);
 
+	bool UpdateDisplacementMap();
 	bool UpdateGradientMap();
 	bool RestoreGradientMap();
 	void ClearGradientMap();
 
+	// for debugging only
+	bool GradientsFromDisplacementMap();
+	double defgrad(FESolidElement& el, std::vector<vec3d>& X, std::vector<vec3d>& u, mat3d& F, int n);
+	double invjac0(FESolidElement& el, std::vector<vec3d>& r0, double Ji[3][3], int n);
+
 protected:
 	FEMeshTopo*	m_topo;		//!< mesh topo structure
+
+	std::vector<vec3d>  m_nodeDispl;    // node displacements before reset
 
 	int		m_maxiter;		// max nr of iterations per time step
 	int		m_maxelem;		// max nr of elements

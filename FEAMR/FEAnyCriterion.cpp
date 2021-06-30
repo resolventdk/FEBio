@@ -31,7 +31,8 @@ BEGIN_FECORE_CLASS(FEAnyCriterion, FEMeshAdaptorCriterion)
     ADD_PARAMETER(m_max, "max");  // triggers remeshing of set if any value above this
     ADD_PARAMETER(m_min, "min");  // triggers remeshing of set if any below above this
     ADD_PARAMETER(m_value, "value");  // scale of adaption
-    ADD_PROPERTY(m_data, "data");
+	ADD_PARAMETER(m_minStride, "minimum_stride");  // minimum number of steps between consecutive adaptions
+	ADD_PROPERTY(m_data, "data");
 END_FECORE_CLASS();
 
 FEAnyCriterion::FEAnyCriterion(FEModel* fem) : FEMeshAdaptorCriterion(fem)
@@ -39,6 +40,9 @@ FEAnyCriterion::FEAnyCriterion(FEModel* fem) : FEMeshAdaptorCriterion(fem)
 	m_value = 1.0;
 	m_min = -1.0e37;
 	m_max = 1.0e37;
+	m_minStride = 1;
+	m_last = -999999;
+	m_count = 0;
 }
 
 FEMeshAdaptorSelection FEAnyCriterion::GetElementSelection(FEElementSet* elemSet)
@@ -48,23 +52,29 @@ FEMeshAdaptorSelection FEAnyCriterion::GetElementSelection(FEElementSet* elemSet
 
 	FEMeshAdaptorSelection elemList;	
 
+	// increment eval counter
+	m_count++;
+
 	// add elements to selection and set scale value (not data_value)
 	bool anyDataInSelection = false;
-	for (FEElementIterator it(&mesh, elemSet); it.isValid(); ++it)
-	{
-		FEElement& el = *it;
-		int nint = el.GaussPoints();
-		for (int j = 0; j < nint; ++j)
+	if ((m_count - m_last) >= m_minStride) {
+		for (FEElementIterator it(&mesh, elemSet); it.isValid(); ++it)
 		{
-			double data_value;
-			m_data->GetMaterialPointValue(*(el.GetMaterialPoint(j)), data_value);
-			if ((data_value > m_min) && (data_value < m_max)) anyDataInSelection = true;
+			FEElement& el = *it;
+			int nint = el.GaussPoints();
+			for (int j = 0; j < nint; ++j)
+			{
+				double data_value;
+				m_data->GetMaterialPointValue(*(el.GetMaterialPoint(j)), data_value);
+				if ((data_value > m_min) && (data_value < m_max)) anyDataInSelection = true;
 
+			}
+			if (el.isActive()) elemList.push_back(el.GetID(), m_value);
 		}
-		if (el.isActive()) elemList.push_back(el.GetID(), m_value);
 	}
-
 	if (!anyDataInSelection) return FEMeshAdaptorSelection();  // return empty list
-
-	return elemList;
+	
+	// something to adapt
+	m_last = m_count;  // note that this evaluation count returned non-empty set
+	return elemList;  // return the set
 }

@@ -39,8 +39,12 @@ private:
 	double  m_max;    // upper threshold value
 	double  m_min;    // lower threshold value
 	double  m_value;  // uniform value of metric
+	int m_minStride;  // minimum number of steps between consecutive returns of non-empty sets
 
 	FEMeshAdaptorCriterion* m_data;
+
+	int m_last;  // when was a non-empty set last returned
+	int m_count;  // number of times the criterion has been evaluated
 
 	DECLARE_FECORE_CLASS();
 };

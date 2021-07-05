@@ -211,6 +211,9 @@ void FERigidBodyFixedBC::Activate()
 //-----------------------------------------------------------------------------
 void FERigidBodyFixedBC::Deactivate()
 {
+
+	FEModelComponent::Deactivate();
+
 	if (m_binit)
 	{
 		FEMechModel& fem = static_cast<FEMechModel&>(*GetFEModel());

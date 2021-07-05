@@ -1031,11 +1031,13 @@ void FEResetMesh::TransferUserMapData()
 		// Map node data to elements
 		// We can interpolate from points to points, so target can either be nodal points or gauss points, not "element"		
 		// TODO: does anything point to this map or is it looked up by name? does it matter if we change storage?
-		delete elemMap; // delete existing
-		elemMap = NodeToElemData(fem, dom, nodeMap, mapper, targetFormat);
-		elemMap->SetName(name); // set same name
+		//delete elemMap; // delete existing
+		FEDomainMap* updatedMap = NodeToElemData(fem, dom, nodeMap, mapper, targetFormat);
+		updatedMap->SetName(name); // set same name
+		*elemMap = *updatedMap; // copy
 
 		// clean up
+		delete updatedMap;
 		delete mapper;
 
 		feLog("\tDone mapping user map \"%s\".\n", name.c_str());
